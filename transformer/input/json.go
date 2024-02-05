@@ -3,17 +3,33 @@ package input
 import "github.com/wernerdweight/filter-transformer-go/transformer/contract"
 
 type JsonInput struct {
+	contract.InputOutputType[[]byte]
 }
 
-func (i *JsonInput) GetData() (interface{}, error) {
+func (i *JsonInput) GetDataString() (string, error) {
 	// TODO: implement
-	return nil, nil
+	return "", nil
+}
+
+func (i *JsonInput) GetDataJson() ([]byte, error) {
+	return i.GetData()
 }
 
 type JsonInputTransformer struct {
 }
 
-func (t *JsonInputTransformer) Transform(input JsonInput) (contract.Filters, error) {
+func (t *JsonInputTransformer) Transform(input *JsonInput) (contract.Filters, error) {
+	var filters contract.Filters
 	// TODO: implement
-	return contract.Filters{}, nil
+	filters.Logic = contract.FilterLogicAnd
+	filters.Conditions = contract.FilterConditions{
+		Conditions: []contract.FilterCondition{
+			{
+				Field:    "field",
+				Operator: contract.FilterOperatorEqual,
+				Value:    "value",
+			},
+		},
+	}
+	return filters, nil
 }

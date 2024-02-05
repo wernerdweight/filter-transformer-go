@@ -2,25 +2,25 @@ package transformer
 
 import "github.com/wernerdweight/filter-transformer-go/transformer/contract"
 
-type FilterTransformer[IT contract.InputType, OT contract.OutputType] struct {
-	inputTransformer  contract.InputTransformerInterface[IT]
-	outputTransformer contract.OutputTransformerInterface[OT]
+type FilterTransformer[IDT any, ODT any, IT contract.InputOutputInterface[IDT], OT contract.InputOutputInterface[ODT]] struct {
+	inputTransformer  contract.InputTransformerInterface[IDT, IT]
+	outputTransformer contract.OutputTransformerInterface[ODT, OT]
 }
 
-func (t *FilterTransformer[IT, OT]) Transform(input IT) (*OT, error) {
+func (t *FilterTransformer[IDT, ODT, IT, OT]) Transform(input IT) (o OT, err error) {
 	filter, err := t.inputTransformer.Transform(input)
 	if err != nil {
-		return nil, err
+		return
 	}
-
-	return t.outputTransformer.Transform(filter)
+	o, err = t.outputTransformer.Transform(filter)
+	return
 }
 
-func NewFilterTransformer[IT contract.InputType, OT contract.OutputType](
-	inputTransformer contract.InputTransformerInterface[IT],
-	outputTransformer contract.OutputTransformerInterface[OT],
-) *FilterTransformer[IT, OT] {
-	return &FilterTransformer[IT, OT]{
+func NewFilterTransformer[IDT any, ODT any, IT contract.InputOutputInterface[IDT], OT contract.InputOutputInterface[ODT]](
+	inputTransformer contract.InputTransformerInterface[IDT, IT],
+	outputTransformer contract.OutputTransformerInterface[ODT, OT],
+) *FilterTransformer[IDT, ODT, IT, OT] {
+	return &FilterTransformer[IDT, ODT, IT, OT]{
 		inputTransformer:  inputTransformer,
 		outputTransformer: outputTransformer,
 	}

@@ -3,11 +3,16 @@ package output
 import "github.com/wernerdweight/filter-transformer-go/transformer/contract"
 
 type SQLOutput struct {
+	contract.InputOutputType[string]
 }
 
-func (o *SQLOutput) SetData(data interface{}) error {
+func (o *SQLOutput) GetDataJson() ([]byte, error) {
 	// TODO: implement
-	return nil
+	return nil, nil
+}
+
+func (o *SQLOutput) GetDataString() (string, error) {
+	return o.GetData()
 }
 
 type SQLOutputTransformer struct {

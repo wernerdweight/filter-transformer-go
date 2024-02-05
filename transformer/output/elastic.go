@@ -3,17 +3,28 @@ package output
 import "github.com/wernerdweight/filter-transformer-go/transformer/contract"
 
 type ElasticOutput struct {
+	contract.InputOutputType[map[string]any]
 }
 
-func (o *ElasticOutput) SetData(data interface{}) error {
+func (o *ElasticOutput) GetDataJson() ([]byte, error) {
 	// TODO: implement
-	return nil
+	return nil, nil
+}
+
+func (o *ElasticOutput) GetDataString() (string, error) {
+	// TODO: implement
+	return "", nil
 }
 
 type ElasticOutputTransformer struct {
 }
 
-func (t *ElasticOutputTransformer) Transform(filters contract.Filters) (*ElasticOutput, error) {
+func (t *ElasticOutputTransformer) Transform(input contract.Filters) (*ElasticOutput, error) {
+	var output ElasticOutput
 	// TODO: implement
-	return nil, nil
+	err := output.SetData(map[string]any{"test": "test"})
+	if err != nil {
+		return nil, err
+	}
+	return &output, nil
 }

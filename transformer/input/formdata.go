@@ -3,9 +3,15 @@ package input
 import "github.com/wernerdweight/filter-transformer-go/transformer/contract"
 
 type FormDataInput struct {
+	contract.InputOutputType[interface{}] // TODO: multipart form data
 }
 
-func (i *FormDataInput) GetData() (interface{}, error) {
+func (i *FormDataInput) GetDataString() (string, error) {
+	// TODO: implement
+	return "", nil
+}
+
+func (i *FormDataInput) GetDataJson() ([]byte, error) {
 	// TODO: implement
 	return nil, nil
 }

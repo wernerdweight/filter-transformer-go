@@ -44,18 +44,40 @@ type Filters struct {
 	Conditions FilterConditions
 }
 
-type InputType interface {
-	GetData() (interface{}, error)
+type InputOutputInterface[T any] interface {
+	SetData(data T) error
+	GetData() (T, error)
+	GetDataString() (string, error)
+	GetDataJson() ([]byte, error)
 }
 
-type OutputType interface {
-	SetData(data interface{}) error
+type InputOutputType[T any] struct {
+	data T
 }
 
-type InputTransformerInterface[T InputType] interface {
-	Transform(input T) (Filters, error)
+func (i *InputOutputType[T]) SetData(data T) error {
+	i.data = data
+	return nil
 }
 
-type OutputTransformerInterface[T OutputType] interface {
-	Transform(input Filters) (*T, error)
+func (i *InputOutputType[T]) GetData() (T, error) {
+	return i.data, nil
+}
+
+func NewInputOutputType[T any, IOT InputOutputInterface[T]](data T, i IOT) (IOT, error) {
+	err := i.SetData(data)
+	if err != nil {
+		return i, err
+	}
+	return i, nil
+}
+
+type InputTransformerInterface[T any, IOT InputOutputInterface[T]] interface {
+	// TODO: add optional validators for fields (filters.conditions.conditions[i].field)
+	// TODO: also for values (filters.conditions.conditions[i].value)
+	Transform(input IOT) (Filters, error)
+}
+
+type OutputTransformerInterface[T any, IOT InputOutputInterface[T]] interface {
+	Transform(input Filters) (IOT, error)
 }
