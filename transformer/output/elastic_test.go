@@ -16,7 +16,14 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 		want    *ElasticOutput
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "empty filters",
+			args: args{
+				input: contract.Filters{},
+			},
+			want:    &ElasticOutput{},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t1.Run(tt.name, func(t1 *testing.T) {
@@ -34,23 +41,17 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 }
 
 func TestElasticOutput_GetDataJson(t *testing.T) {
-	type fields struct {
-		InputOutputType contract.InputOutputType
-	}
 	tests := []struct {
-		name    string
-		fields  fields
-		want    []byte
-		wantErr bool
+		name          string
+		elasticOutput ElasticOutput
+		want          []byte
+		wantErr       bool
 	}{
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			o := &ElasticOutput{
-				InputOutputType: tt.fields.InputOutputType,
-			}
-			got, err := o.GetDataJson()
+			got, err := tt.elasticOutput.GetDataJson()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetDataJson() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -63,23 +64,17 @@ func TestElasticOutput_GetDataJson(t *testing.T) {
 }
 
 func TestElasticOutput_GetDataString(t *testing.T) {
-	type fields struct {
-		InputOutputType contract.InputOutputType
-	}
 	tests := []struct {
-		name    string
-		fields  fields
-		want    string
-		wantErr bool
+		name          string
+		elasticOutput ElasticOutput
+		want          string
+		wantErr       bool
 	}{
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			o := &ElasticOutput{
-				InputOutputType: tt.fields.InputOutputType,
-			}
-			got, err := o.GetDataString()
+			got, err := tt.elasticOutput.GetDataString()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetDataString() error = %v, wantErr %v", err, tt.wantErr)
 				return

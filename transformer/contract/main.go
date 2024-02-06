@@ -3,6 +3,7 @@ package contract
 import (
 	"encoding/json"
 	"errors"
+	"slices"
 )
 
 type FilterLogic string
@@ -37,6 +38,16 @@ type FilterCondition struct {
 	Field    string
 	Operator FilterOperator
 	Value    interface{}
+}
+
+func (c FilterCondition) IsNegative() bool {
+	return slices.Contains([]FilterOperator{
+		FilterOperatorNotEqual,
+		FilterOperatorNotContains,
+		FilterOperatorIsEmpty,
+		FilterOperatorIsNil,
+		FilterOperatorNotIn,
+	}, c.Operator)
 }
 
 type FilterConditions struct {
