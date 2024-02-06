@@ -2,7 +2,6 @@ package output
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/wernerdweight/filter-transformer-go/transformer/contract"
 )
 
@@ -64,9 +63,26 @@ var conditionResolvers = map[contract.FilterOperator]func(contract.FilterConditi
 	},
 	contract.FilterOperatorGreaterThanOrEqualOrNil: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
-			"range": map[string]any{
-				condition.Field: map[string]any{
-					"gte": condition.Value,
+			"bool": map[string]any{
+				"should": []map[string]any{
+					{
+						"range": map[string]any{
+							condition.Field: map[string]any{
+								"gte": condition.Value,
+							},
+						},
+					},
+					{
+						"bool": map[string]any{
+							"must_not": []map[string]any{
+								{
+									"exists": map[string]any{
+										"field": condition.Field,
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		}
@@ -91,9 +107,26 @@ var conditionResolvers = map[contract.FilterOperator]func(contract.FilterConditi
 	},
 	contract.FilterOperatorLowerThanOrEqualOrNil: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
-			"range": map[string]any{
-				condition.Field: map[string]any{
-					"lte": condition.Value,
+			"bool": map[string]any{
+				"should": []map[string]any{
+					{
+						"range": map[string]any{
+							condition.Field: map[string]any{
+								"lte": condition.Value,
+							},
+						},
+					},
+					{
+						"bool": map[string]any{
+							"must_not": []map[string]any{
+								{
+									"exists": map[string]any{
+										"field": condition.Field,
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		}
@@ -115,11 +148,15 @@ var conditionResolvers = map[contract.FilterOperator]func(contract.FilterConditi
 	contract.FilterOperatorNotContains: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
 			"match": map[string]any{
-				condition.Field: condition.Value,
+				condition.Field: map[string]any{
+					"query":    condition.Value,
+					"operator": "AND",
+				},
 			},
 		}
 	},
 	contract.FilterOperatorEnds: func(condition contract.FilterCondition) map[string]any {
+		// FIXME: suffix does not exist in elastic search, use a regexp instead
 		return map[string]any{
 			"suffix": map[string]any{
 				condition.Field: condition.Value,
@@ -128,7 +165,7 @@ var conditionResolvers = map[contract.FilterOperator]func(contract.FilterConditi
 	},
 	contract.FilterOperatorIsNil: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
-			"missing": map[string]any{
+			"exists": map[string]any{
 				"field": condition.Field,
 			},
 		}
@@ -142,7 +179,7 @@ var conditionResolvers = map[contract.FilterOperator]func(contract.FilterConditi
 	},
 	contract.FilterOperatorIsEmpty: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
-			"missing": map[string]any{
+			"exists": map[string]any{
 				"field": condition.Field,
 			},
 		}
@@ -217,7 +254,12 @@ func transformFilters(filters contract.Filters, target *map[string]any) {
 		outputFilters[logic] = positiveConditions
 	}
 	if negativeConditions != nil {
-		outputFilters[fmt.Sprintf("%s_not", logic)] = negativeConditions
+		if logic == "should" {
+			negativeShouldConditions := map[string]any{"bool": map[string]any{"must_not": negativeConditions}}
+			outputFilters[logic] = append(outputFilters[logic].([]map[string]any), negativeShouldConditions)
+		} else {
+			outputFilters["must_not"] = negativeConditions
+		}
 	}
 	if len(outputFilters) > 0 {
 		(*target)["bool"] = outputFilters

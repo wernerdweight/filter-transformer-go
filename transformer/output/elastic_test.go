@@ -28,11 +28,15 @@ var testOutputElastic1, _ = contract.NewInputOutputType(map[string]any{
 								"key": "val",
 							},
 						},
-					},
-					"should_not": []map[string]any{
 						{
-							"term": map[string]any{
-								"key2": "val2",
+							"bool": map[string]any{
+								"must_not": []map[string]any{
+									{
+										"term": map[string]any{
+											"key2": "val2",
+										},
+									},
+								},
 							},
 						},
 					},
@@ -297,7 +301,7 @@ func TestElasticOutput_GetDataJson(t *testing.T) {
 		{
 			name:          "with nested data",
 			elasticOutput: *testOutputElastic1,
-			want:          []byte(`{"bool":{"must":[{"bool":{"should":[{"term":{"key":"val"}}],"should_not":[{"term":{"key2":"val2"}}]}}]}}`),
+			want:          []byte(`{"bool":{"must":[{"bool":{"should":[{"term":{"key":"val"}},{"bool":{"must_not":[{"term":{"key2":"val2"}}]}}]}}]}}`),
 			wantErr:       false,
 		},
 		{
@@ -355,7 +359,7 @@ func TestElasticOutput_GetDataString(t *testing.T) {
 		{
 			name:          "with nested data",
 			elasticOutput: *testOutputElastic1,
-			want:          `{"bool":{"must":[{"bool":{"should":[{"term":{"key":"val"}}],"should_not":[{"term":{"key2":"val2"}}]}}]}}`,
+			want:          `{"bool":{"must":[{"bool":{"should":[{"term":{"key":"val"}},{"bool":{"must_not":[{"term":{"key2":"val2"}}]}}]}}]}}`,
 			wantErr:       false,
 		},
 		{
@@ -386,6 +390,33 @@ func TestElasticOutput_GetDataString(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("GetDataString() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_transformCondition(t *testing.T) {
+	type args struct {
+		condition          contract.FilterCondition
+		positiveConditions *[]map[string]any
+		negativeConditions *[]map[string]any
+	}
+	tests := []struct {
+		name         string
+		args         args
+		wantPositive *[]map[string]any
+		wantNegative *[]map[string]any
+	}{
+		// TODO: Add test cases with all operators
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			transformCondition(tt.args.condition, tt.args.positiveConditions, tt.args.negativeConditions)
+			if !reflect.DeepEqual(tt.args.positiveConditions, tt.wantPositive) {
+				t.Errorf("transformCondition() positive: got = %v, want %v", tt.args.positiveConditions, tt.wantPositive)
+			}
+			if !reflect.DeepEqual(tt.args.negativeConditions, tt.wantNegative) {
+				t.Errorf("transformCondition() negative: got = %v, want %v", tt.args.negativeConditions, tt.wantNegative)
 			}
 		})
 	}
