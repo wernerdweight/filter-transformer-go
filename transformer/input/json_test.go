@@ -122,7 +122,7 @@ func TestJsonInputTransformer_Transform(t1 *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "input with nested data",
+			name: "input with complex data",
 			args: args{
 				input: testInput4,
 			},
@@ -247,7 +247,7 @@ func TestJsonInput_GetDataJson(t *testing.T) {
 			wantErr:   false,
 		},
 		{
-			name:      "input with nested data",
+			name:      "input with complex data",
 			jsonInput: *testInput4,
 			want:      []byte(`{"logic": "or", "conditions": [{"logic": "and", "conditions": [{"field": "key", "operator": "eq", "value": "val"}, {"field": "key2", "operator": "not-empty", "value": null}]}, {"logic": "and", "conditions": [{"field": "key3", "operator": "contains", "value": "val3"}, {"field": "key4", "operator": "gt", "value": 123}]}]}`),
 			wantErr:   false,
@@ -323,7 +323,7 @@ func TestJsonInput_GetDataString(t *testing.T) {
 			wantErr:   false,
 		},
 		{
-			name:      "input with nested data",
+			name:      "input with complex data",
 			jsonInput: *testInput4,
 			want:      `{"logic": "or", "conditions": [{"logic": "and", "conditions": [{"field": "key", "operator": "eq", "value": "val"}, {"field": "key2", "operator": "not-empty", "value": null}]}, {"logic": "and", "conditions": [{"field": "key3", "operator": "contains", "value": "val3"}, {"field": "key4", "operator": "gt", "value": 123}]}]}`,
 			wantErr:   false,

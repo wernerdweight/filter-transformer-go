@@ -15,6 +15,9 @@ func (o *ElasticOutput) GetDataJson() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	if rawData == nil {
+		return nil, nil
+	}
 	return json.Marshal(rawData)
 }
 
@@ -186,8 +189,10 @@ func transformConditions(conditions contract.FilterConditions) ([]map[string]any
 	var positiveConditions []map[string]any
 	var negativeConditions []map[string]any
 	if conditions.Filters != nil {
-		for i, filter := range conditions.Filters {
-			transformFilters(filter, &positiveConditions[i])
+		for _, filter := range conditions.Filters {
+			var condition = make(map[string]any)
+			transformFilters(filter, &condition)
+			positiveConditions = append(positiveConditions, condition)
 		}
 	}
 	if conditions.Conditions != nil {
@@ -203,11 +208,11 @@ func transformFilters(filters contract.Filters, target *map[string]any) {
 		return
 	}
 	logic := "must"
-	if filters.Logic != "" {
+	if filters.Logic == contract.FilterLogicOr {
 		logic = "should"
 	}
 	positiveConditions, negativeConditions := transformConditions(filters.Conditions)
-	var outputFilters map[string]any
+	var outputFilters = make(map[string]any)
 	if positiveConditions != nil {
 		outputFilters[logic] = positiveConditions
 	}
@@ -223,10 +228,14 @@ type ElasticOutputTransformer struct {
 }
 
 func (t *ElasticOutputTransformer) Transform(input contract.Filters) (*ElasticOutput, error) {
-	var transformedData map[string]any
+	var transformedData = make(map[string]any)
 	transformFilters(input, &transformedData)
 
 	var output ElasticOutput
+	if len(transformedData) == 0 {
+		return &output, nil
+	}
+
 	err := output.SetData(transformedData)
 	if err != nil {
 		return nil, err
