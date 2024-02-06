@@ -1,5 +1,7 @@
 package contract
 
+import "encoding/json"
+
 type FilterLogic string
 
 type FilterOperator string
@@ -21,7 +23,7 @@ const (
 	FilterOperatorNotContains             FilterOperator = "not-contains"
 	FilterOperatorEnds                    FilterOperator = "ends"
 	FilterOperatorIsNil                   FilterOperator = "nil"
-	FilterOperatorIsNotNil                FilterOperator = "not-nil"
+	FilterOperatorIsNotNil                FilterOperator = "not-null"
 	FilterOperatorIsEmpty                 FilterOperator = "empty"
 	FilterOperatorIsNotEmpty              FilterOperator = "not-empty"
 	FilterOperatorIn                      FilterOperator = "in"
@@ -37,6 +39,26 @@ type FilterCondition struct {
 type FilterConditions struct {
 	Conditions []FilterCondition
 	Filters    []Filters
+}
+
+func (fc *FilterConditions) IsEmtpy() bool {
+	return len(fc.Conditions) == 0 && len(fc.Filters) == 0
+}
+
+func (fc *FilterConditions) UnmarshalJSON(data []byte) error {
+	var conditions []FilterCondition
+	err := json.Unmarshal(data, &conditions)
+	if err == nil && len(conditions) > 0 && conditions[0].Field != "" {
+		fc.Conditions = conditions
+		return nil
+	}
+	var filters []Filters
+	err = json.Unmarshal(data, &filters)
+	if err == nil && len(filters) > 0 && !filters[0].Conditions.IsEmtpy() {
+		fc.Filters = filters
+		return nil
+	}
+	return err
 }
 
 type Filters struct {

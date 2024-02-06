@@ -1,19 +1,28 @@
 package output
 
-import "github.com/wernerdweight/filter-transformer-go/transformer/contract"
+import (
+	"encoding/json"
+	"github.com/wernerdweight/filter-transformer-go/transformer/contract"
+)
 
 type ElasticOutput struct {
 	contract.InputOutputType[map[string]any]
 }
 
 func (o *ElasticOutput) GetDataJson() ([]byte, error) {
-	// TODO: implement
-	return nil, nil
+	rawData, err := o.GetData()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(rawData)
 }
 
 func (o *ElasticOutput) GetDataString() (string, error) {
-	// TODO: implement
-	return "", nil
+	rawData, err := o.GetDataJson()
+	if err != nil {
+		return "", err
+	}
+	return string(rawData), nil
 }
 
 type ElasticOutputTransformer struct {
