@@ -11,7 +11,7 @@ var testOutputElastic0, _ = contract.NewInputOutputType(map[string]any{
 		"must": []map[string]any{
 			{
 				"term": map[string]any{
-					"key": "val",
+					"key.lowersortable": "val",
 				},
 			},
 		},
@@ -25,7 +25,7 @@ var testOutputElastic1, _ = contract.NewInputOutputType(map[string]any{
 					"should": []map[string]any{
 						{
 							"term": map[string]any{
-								"key": "val",
+								"key.lowersortable": "val",
 							},
 						},
 						{
@@ -33,7 +33,7 @@ var testOutputElastic1, _ = contract.NewInputOutputType(map[string]any{
 								"must_not": []map[string]any{
 									{
 										"term": map[string]any{
-											"key2": "val2",
+											"key2.lowersortable": "val2",
 										},
 									},
 								},
@@ -77,7 +77,7 @@ var testOutputElastic4, _ = contract.NewInputOutputType(map[string]any{
 					"must": []map[string]any{
 						{
 							"term": map[string]any{
-								"key": "val",
+								"key.lowersortable": "val",
 							},
 						},
 						{
@@ -92,8 +92,8 @@ var testOutputElastic4, _ = contract.NewInputOutputType(map[string]any{
 				"bool": map[string]any{
 					"must": []map[string]any{
 						{
-							"match": map[string]any{
-								"key3": "val3",
+							"wildcard": map[string]any{
+								"key3.lowersortable": "*val3*",
 							},
 						},
 						{
@@ -295,13 +295,13 @@ func TestElasticOutput_GetDataJson(t *testing.T) {
 		{
 			name:          "with data",
 			elasticOutput: *testOutputElastic0,
-			want:          []byte(`{"bool":{"must":[{"term":{"key":"val"}}]}}`),
+			want:          []byte(`{"bool":{"must":[{"term":{"key.lowersortable":"val"}}]}}`),
 			wantErr:       false,
 		},
 		{
 			name:          "with nested data",
 			elasticOutput: *testOutputElastic1,
-			want:          []byte(`{"bool":{"must":[{"bool":{"should":[{"term":{"key":"val"}},{"bool":{"must_not":[{"term":{"key2":"val2"}}]}}]}}]}}`),
+			want:          []byte(`{"bool":{"must":[{"bool":{"should":[{"term":{"key.lowersortable":"val"}},{"bool":{"must_not":[{"term":{"key2.lowersortable":"val2"}}]}}]}}]}}`),
 			wantErr:       false,
 		},
 		{
@@ -319,7 +319,7 @@ func TestElasticOutput_GetDataJson(t *testing.T) {
 		{
 			name:          "with complex data",
 			elasticOutput: *testOutputElastic4,
-			want:          []byte(`{"bool":{"should":[{"bool":{"must":[{"term":{"key":"val"}},{"exists":{"field":"key2"}}]}},{"bool":{"must":[{"match":{"key3":"val3"}},{"range":{"key4":{"gt":123}}}]}}]}}`),
+			want:          []byte(`{"bool":{"should":[{"bool":{"must":[{"term":{"key.lowersortable":"val"}},{"exists":{"field":"key2"}}]}},{"bool":{"must":[{"wildcard":{"key3.lowersortable":"*val3*"}},{"range":{"key4":{"gt":123}}}]}}]}}`),
 			wantErr:       false,
 		},
 	}
@@ -353,13 +353,13 @@ func TestElasticOutput_GetDataString(t *testing.T) {
 		{
 			name:          "with data",
 			elasticOutput: *testOutputElastic0,
-			want:          `{"bool":{"must":[{"term":{"key":"val"}}]}}`,
+			want:          `{"bool":{"must":[{"term":{"key.lowersortable":"val"}}]}}`,
 			wantErr:       false,
 		},
 		{
 			name:          "with nested data",
 			elasticOutput: *testOutputElastic1,
-			want:          `{"bool":{"must":[{"bool":{"should":[{"term":{"key":"val"}},{"bool":{"must_not":[{"term":{"key2":"val2"}}]}}]}}]}}`,
+			want:          `{"bool":{"must":[{"bool":{"should":[{"term":{"key.lowersortable":"val"}},{"bool":{"must_not":[{"term":{"key2.lowersortable":"val2"}}]}}]}}]}}`,
 			wantErr:       false,
 		},
 		{
@@ -377,7 +377,7 @@ func TestElasticOutput_GetDataString(t *testing.T) {
 		{
 			name:          "with complex data",
 			elasticOutput: *testOutputElastic4,
-			want:          `{"bool":{"should":[{"bool":{"must":[{"term":{"key":"val"}},{"exists":{"field":"key2"}}]}},{"bool":{"must":[{"match":{"key3":"val3"}},{"range":{"key4":{"gt":123}}}]}}]}}`,
+			want:          `{"bool":{"should":[{"bool":{"must":[{"term":{"key.lowersortable":"val"}},{"exists":{"field":"key2"}}]}},{"bool":{"must":[{"wildcard":{"key3.lowersortable":"*val3*"}},{"range":{"key4":{"gt":123}}}]}}]}}`,
 			wantErr:       false,
 		},
 	}
@@ -407,7 +407,668 @@ func Test_transformCondition(t *testing.T) {
 		wantPositive *[]map[string]any
 		wantNegative *[]map[string]any
 	}{
-		// TODO: Add test cases with all operators
+		{
+			name: "equal",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorEqual,
+					Value:    "val",
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"term": map[string]any{
+						"key.lowersortable": "val",
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "equal number",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorEqual,
+					Value:    123,
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"term": map[string]any{
+						"key": 123,
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "not equal",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorNotEqual,
+					Value:    "val",
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{},
+			wantNegative: &[]map[string]any{
+				{
+					"term": map[string]any{
+						"key.lowersortable": "val",
+					},
+				},
+			},
+		},
+		{
+			name: "not equal number",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorNotEqual,
+					Value:    123,
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{},
+			wantNegative: &[]map[string]any{
+				{
+					"term": map[string]any{
+						"key": 123,
+					},
+				},
+			},
+		},
+		{
+			name: "greater than",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorGreaterThan,
+					Value:    123,
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"range": map[string]any{
+						"key": map[string]any{
+							"gt": 123,
+						},
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "greater than date",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorGreaterThan,
+					Value:    "2021-01-01",
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"range": map[string]any{
+						"key": map[string]any{
+							"gt": "2021-01-01",
+						},
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "greater than or equal",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorGreaterThanOrEqual,
+					Value:    123,
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"range": map[string]any{
+						"key": map[string]any{
+							"gte": 123,
+						},
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "greater than or equal date",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorGreaterThanOrEqual,
+					Value:    "2021-01-01",
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"range": map[string]any{
+						"key": map[string]any{
+							"gte": "2021-01-01",
+						},
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "greater than or equal or nil",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorGreaterThanOrEqualOrNil,
+					Value:    123,
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"bool": map[string]any{
+						"should": []map[string]any{
+							{
+								"range": map[string]any{
+									"key": map[string]any{
+										"gte": 123,
+									},
+								},
+							},
+							{
+								"bool": map[string]any{
+									"must_not": []map[string]any{
+										{
+											"exists": map[string]any{
+												"field": "key",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "greater than or equal or nil date",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorGreaterThanOrEqualOrNil,
+					Value:    "2021-01-01",
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"bool": map[string]any{
+						"should": []map[string]any{
+							{
+								"range": map[string]any{
+									"key": map[string]any{
+										"gte": "2021-01-01",
+									},
+								},
+							},
+							{
+								"bool": map[string]any{
+									"must_not": []map[string]any{
+										{
+											"exists": map[string]any{
+												"field": "key",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "lower than",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorLowerThan,
+					Value:    123,
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"range": map[string]any{
+						"key": map[string]any{
+							"lt": 123,
+						},
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "lower than date",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorLowerThan,
+					Value:    "2021-01-01",
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"range": map[string]any{
+						"key": map[string]any{
+							"lt": "2021-01-01",
+						},
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "lower than or equal",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorLowerThanOrEqual,
+					Value:    123,
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"range": map[string]any{
+						"key": map[string]any{
+							"lte": 123,
+						},
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "lower than or equal date",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorLowerThanOrEqual,
+					Value:    "2021-01-01",
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"range": map[string]any{
+						"key": map[string]any{
+							"lte": "2021-01-01",
+						},
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "lower than or equal or nil",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorLowerThanOrEqualOrNil,
+					Value:    123,
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"bool": map[string]any{
+						"should": []map[string]any{
+							{
+								"range": map[string]any{
+									"key": map[string]any{
+										"lte": 123,
+									},
+								},
+							},
+							{
+								"bool": map[string]any{
+									"must_not": []map[string]any{
+										{
+											"exists": map[string]any{
+												"field": "key",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "lower than or equal or nil date",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorLowerThanOrEqualOrNil,
+					Value:    "2021-01-01",
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"bool": map[string]any{
+						"should": []map[string]any{
+							{
+								"range": map[string]any{
+									"key": map[string]any{
+										"lte": "2021-01-01",
+									},
+								},
+							},
+							{
+								"bool": map[string]any{
+									"must_not": []map[string]any{
+										{
+											"exists": map[string]any{
+												"field": "key",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "begins",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorBegins,
+					Value:    "val",
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"prefix": map[string]any{
+						"key.lowersortable": "val",
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "contains",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorContains,
+					Value:    "val",
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"wildcard": map[string]any{
+						"key.lowersortable": "*val*",
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "not contains",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorNotContains,
+					Value:    "val",
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{},
+			wantNegative: &[]map[string]any{
+				{
+					"wildcard": map[string]any{
+						"key.lowersortable": "*val*",
+					},
+				},
+			},
+		},
+		{
+			name: "ends",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorEnds,
+					Value:    "val",
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"wildcard": map[string]any{
+						"key.lowersortable": "*val",
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "is nil",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorIsNil,
+					Value:    nil,
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{},
+			wantNegative: &[]map[string]any{
+				{
+					"exists": map[string]any{
+						"field": "key",
+					},
+				},
+			},
+		},
+		{
+			name: "is not nil",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorIsNotNil,
+					Value:    nil,
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"exists": map[string]any{
+						"field": "key",
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "is empty",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorIsEmpty,
+					Value:    nil,
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{},
+			wantNegative: &[]map[string]any{
+				{
+					"exists": map[string]any{
+						"field": "key",
+					},
+				},
+			},
+		},
+		{
+			name: "is not empty",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorIsNotEmpty,
+					Value:    nil,
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"exists": map[string]any{
+						"field": "key",
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "in",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorIn,
+					Value:    []interface{}{"val1", "val2"},
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"terms": map[string]any{
+						"key.lowersortable": []interface{}{"val1", "val2"},
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "in numbers",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorIn,
+					Value:    []interface{}{123, 456},
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"terms": map[string]any{
+						"key": []interface{}{123, 456},
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
+			name: "not in",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorNotIn,
+					Value:    []interface{}{"val1", "val2"},
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{},
+			wantNegative: &[]map[string]any{
+				{
+					"terms": map[string]any{
+						"key.lowersortable": []interface{}{"val1", "val2"},
+					},
+				},
+			},
+		},
+		{
+			name: "not in numbers",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorNotIn,
+					Value:    []interface{}{123, 456},
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{},
+			wantNegative: &[]map[string]any{
+				{
+					"terms": map[string]any{
+						"key": []interface{}{123, 456},
+					},
+				},
+			},
+		},
+		{
+			name: "empty condition",
+			args: args{
+				condition:          contract.FilterCondition{},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{},
+			wantNegative: &[]map[string]any{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

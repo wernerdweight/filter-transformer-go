@@ -2,6 +2,7 @@ package output
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/wernerdweight/filter-transformer-go/transformer/contract"
 )
 
@@ -28,18 +29,33 @@ func (o *ElasticOutput) GetDataString() (string, error) {
 	return string(rawData), nil
 }
 
+func getFieldVariantByValueType(condition contract.FilterCondition) string {
+	field := fmt.Sprintf("%s.lowersortable", condition.Field)
+	value := condition.Value
+	slice, isSlice := value.([]interface{})
+	if isSlice && len(slice) > 0 {
+		value = slice[0]
+	}
+	_, isInt := value.(int)
+	_, isFloat := value.(float64)
+	if isInt || isFloat {
+		field = condition.Field
+	}
+	return field
+}
+
 var conditionResolvers = map[contract.FilterOperator]func(contract.FilterCondition) map[string]any{
 	contract.FilterOperatorEqual: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
 			"term": map[string]any{
-				condition.Field: condition.Value,
+				getFieldVariantByValueType(condition): condition.Value,
 			},
 		}
 	},
 	contract.FilterOperatorNotEqual: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
 			"term": map[string]any{
-				condition.Field: condition.Value,
+				getFieldVariantByValueType(condition): condition.Value,
 			},
 		}
 	},
@@ -134,32 +150,28 @@ var conditionResolvers = map[contract.FilterOperator]func(contract.FilterConditi
 	contract.FilterOperatorBegins: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
 			"prefix": map[string]any{
-				condition.Field: condition.Value,
+				fmt.Sprintf("%s.lowersortable", condition.Field): condition.Value,
 			},
 		}
 	},
 	contract.FilterOperatorContains: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
-			"match": map[string]any{
-				condition.Field: condition.Value,
+			"wildcard": map[string]any{
+				fmt.Sprintf("%s.lowersortable", condition.Field): fmt.Sprintf("*%s*", condition.Value),
 			},
 		}
 	},
 	contract.FilterOperatorNotContains: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
-			"match": map[string]any{
-				condition.Field: map[string]any{
-					"query":    condition.Value,
-					"operator": "AND",
-				},
+			"wildcard": map[string]any{
+				fmt.Sprintf("%s.lowersortable", condition.Field): fmt.Sprintf("*%s*", condition.Value),
 			},
 		}
 	},
 	contract.FilterOperatorEnds: func(condition contract.FilterCondition) map[string]any {
-		// FIXME: suffix does not exist in elastic search, use a regexp instead
 		return map[string]any{
-			"suffix": map[string]any{
-				condition.Field: condition.Value,
+			"wildcard": map[string]any{
+				fmt.Sprintf("%s.lowersortable", condition.Field): fmt.Sprintf("*%s", condition.Value),
 			},
 		}
 	},
@@ -194,14 +206,14 @@ var conditionResolvers = map[contract.FilterOperator]func(contract.FilterConditi
 	contract.FilterOperatorIn: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
 			"terms": map[string]any{
-				condition.Field: condition.Value,
+				getFieldVariantByValueType(condition): condition.Value,
 			},
 		}
 	},
 	contract.FilterOperatorNotIn: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
 			"terms": map[string]any{
-				condition.Field: condition.Value,
+				getFieldVariantByValueType(condition): condition.Value,
 			},
 		}
 	},
