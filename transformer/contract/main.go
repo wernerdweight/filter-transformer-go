@@ -1,6 +1,9 @@
 package contract
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"errors"
+)
 
 type FilterLogic string
 
@@ -58,12 +61,20 @@ func (fc *FilterConditions) UnmarshalJSON(data []byte) error {
 		fc.Filters = filters
 		return nil
 	}
+	if len(data) > 0 {
+		// not empty, but not a valid filter conditions
+		return errors.New("invalid filter conditions")
+	}
 	return err
 }
 
 type Filters struct {
 	Logic      FilterLogic
 	Conditions FilterConditions
+}
+
+func (f *Filters) IsEmpty() bool {
+	return f.Logic == "" && f.Conditions.IsEmtpy()
 }
 
 type InputOutputInterface[T any] interface {
