@@ -6,14 +6,14 @@ import (
 	"testing"
 )
 
-var testInput0, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "eq", "value": "val"}]}`), &JsonInput{})
-var testInput1, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"logic": "or", "conditions": [{"field": "key", "operator": "eq", "value": "val"}, {"field": "key2", "operator": "neq", "value": "val2"}]}]}`), &JsonInput{})
-var testInput2, _ = contract.NewInputOutputType([]byte(`{"logic": "or", "conditions": [{"field": "key", "operator": "not-null", "value": null}]}`), &JsonInput{})
-var testInput3, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "gte", "value": 123}]}`), &JsonInput{})
-var testInput4, _ = contract.NewInputOutputType([]byte(`{"logic": "or", "conditions": [{"logic": "and", "conditions": [{"field": "key", "operator": "eq", "value": "val"}, {"field": "key2", "operator": "not-empty", "value": null}]}, {"logic": "and", "conditions": [{"field": "key3", "operator": "contains", "value": "val3"}, {"field": "key4", "operator": "gt", "value": 123}]}]}`), &JsonInput{})
-var invalidInput0, _ = contract.NewInputOutputType([]byte(`{"field": "key", "operator": "eq", "value": "val"}`), &JsonInput{})
-var invalidInput1, _ = contract.NewInputOutputType([]byte(`"JSON string"`), &JsonInput{})
-var invalidInput2, _ = contract.NewInputOutputType([]byte(`not JSON at all`), &JsonInput{})
+var testInputJson0, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "eq", "value": "val"}]}`), &JsonInput{})
+var testInputJson1, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"logic": "or", "conditions": [{"field": "key", "operator": "eq", "value": "val"}, {"field": "key2", "operator": "neq", "value": "val2"}]}]}`), &JsonInput{})
+var testInputJson2, _ = contract.NewInputOutputType([]byte(`{"logic": "or", "conditions": [{"field": "key", "operator": "not-null", "value": null}]}`), &JsonInput{})
+var testInputJson3, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "gte", "value": 123}]}`), &JsonInput{})
+var testInputJson4, _ = contract.NewInputOutputType([]byte(`{"logic": "or", "conditions": [{"logic": "and", "conditions": [{"field": "key", "operator": "eq", "value": "val"}, {"field": "key2", "operator": "not-empty", "value": null}]}, {"logic": "and", "conditions": [{"field": "key3", "operator": "contains", "value": "val3"}, {"field": "key4", "operator": "gt", "value": 123}]}]}`), &JsonInput{})
+var invalidInputJson0, _ = contract.NewInputOutputType([]byte(`{"field": "key", "operator": "eq", "value": "val"}`), &JsonInput{})
+var invalidInputJson1, _ = contract.NewInputOutputType([]byte(`"JSON string"`), &JsonInput{})
+var invalidInputJson2, _ = contract.NewInputOutputType([]byte(`not JSON at all`), &JsonInput{})
 
 func TestJsonInputTransformer_Transform(t1 *testing.T) {
 	type args struct {
@@ -36,7 +36,7 @@ func TestJsonInputTransformer_Transform(t1 *testing.T) {
 		{
 			name: "input with data",
 			args: args{
-				input: testInput0,
+				input: testInputJson0,
 			},
 			want: contract.Filters{
 				Logic: contract.FilterLogicAnd,
@@ -55,7 +55,7 @@ func TestJsonInputTransformer_Transform(t1 *testing.T) {
 		{
 			name: "input with nested data",
 			args: args{
-				input: testInput1,
+				input: testInputJson1,
 			},
 			want: contract.Filters{
 				Logic: contract.FilterLogicAnd,
@@ -86,7 +86,7 @@ func TestJsonInputTransformer_Transform(t1 *testing.T) {
 		{
 			name: "input with null value",
 			args: args{
-				input: testInput2,
+				input: testInputJson2,
 			},
 			want: contract.Filters{
 				Logic: contract.FilterLogicOr,
@@ -105,7 +105,7 @@ func TestJsonInputTransformer_Transform(t1 *testing.T) {
 		{
 			name: "input with number value",
 			args: args{
-				input: testInput3,
+				input: testInputJson3,
 			},
 			want: contract.Filters{
 				Logic: contract.FilterLogicAnd,
@@ -124,7 +124,7 @@ func TestJsonInputTransformer_Transform(t1 *testing.T) {
 		{
 			name: "input with complex data",
 			args: args{
-				input: testInput4,
+				input: testInputJson4,
 			},
 			want: contract.Filters{
 				Logic: contract.FilterLogicOr,
@@ -172,7 +172,7 @@ func TestJsonInputTransformer_Transform(t1 *testing.T) {
 		{
 			name: "invalid input - wrong structure",
 			args: args{
-				input: invalidInput0,
+				input: invalidInputJson0,
 			},
 			want:    contract.Filters{},
 			wantErr: true,
@@ -180,7 +180,7 @@ func TestJsonInputTransformer_Transform(t1 *testing.T) {
 		{
 			name: "invalid input - JSON string",
 			args: args{
-				input: invalidInput1,
+				input: invalidInputJson1,
 			},
 			want:    contract.Filters{},
 			wantErr: true,
@@ -188,7 +188,7 @@ func TestJsonInputTransformer_Transform(t1 *testing.T) {
 		{
 			name: "invalid input - not JSON",
 			args: args{
-				input: invalidInput2,
+				input: invalidInputJson2,
 			},
 			want:    contract.Filters{},
 			wantErr: true,
@@ -224,49 +224,49 @@ func TestJsonInput_GetDataJson(t *testing.T) {
 		},
 		{
 			name:      "input with data",
-			jsonInput: *testInput0,
+			jsonInput: *testInputJson0,
 			want:      []byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "eq", "value": "val"}]}`),
 			wantErr:   false,
 		},
 		{
 			name:      "input with nested data",
-			jsonInput: *testInput1,
+			jsonInput: *testInputJson1,
 			want:      []byte(`{"logic": "and", "conditions": [{"logic": "or", "conditions": [{"field": "key", "operator": "eq", "value": "val"}, {"field": "key2", "operator": "neq", "value": "val2"}]}]}`),
 			wantErr:   false,
 		},
 		{
 			name:      "input with null value",
-			jsonInput: *testInput2,
+			jsonInput: *testInputJson2,
 			want:      []byte(`{"logic": "or", "conditions": [{"field": "key", "operator": "not-null", "value": null}]}`),
 			wantErr:   false,
 		},
 		{
 			name:      "input with number value",
-			jsonInput: *testInput3,
+			jsonInput: *testInputJson3,
 			want:      []byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "gte", "value": 123}]}`),
 			wantErr:   false,
 		},
 		{
 			name:      "input with complex data",
-			jsonInput: *testInput4,
+			jsonInput: *testInputJson4,
 			want:      []byte(`{"logic": "or", "conditions": [{"logic": "and", "conditions": [{"field": "key", "operator": "eq", "value": "val"}, {"field": "key2", "operator": "not-empty", "value": null}]}, {"logic": "and", "conditions": [{"field": "key3", "operator": "contains", "value": "val3"}, {"field": "key4", "operator": "gt", "value": 123}]}]}`),
 			wantErr:   false,
 		},
 		{
 			name:      "invalid input - wrong structure",
-			jsonInput: *invalidInput0,
+			jsonInput: *invalidInputJson0,
 			want:      []byte(`{"field": "key", "operator": "eq", "value": "val"}`),
 			wantErr:   false,
 		},
 		{
 			name:      "invalid input - JSON string",
-			jsonInput: *invalidInput1,
+			jsonInput: *invalidInputJson1,
 			want:      []byte(`"JSON string"`),
 			wantErr:   false,
 		},
 		{
 			name:      "invalid input - not JSON",
-			jsonInput: *invalidInput2,
+			jsonInput: *invalidInputJson2,
 			want:      []byte(`not JSON at all`),
 			wantErr:   false,
 		},
@@ -300,49 +300,49 @@ func TestJsonInput_GetDataString(t *testing.T) {
 		},
 		{
 			name:      "input with data",
-			jsonInput: *testInput0,
+			jsonInput: *testInputJson0,
 			want:      `{"logic": "and", "conditions": [{"field": "key", "operator": "eq", "value": "val"}]}`,
 			wantErr:   false,
 		},
 		{
 			name:      "input with nested data",
-			jsonInput: *testInput1,
+			jsonInput: *testInputJson1,
 			want:      `{"logic": "and", "conditions": [{"logic": "or", "conditions": [{"field": "key", "operator": "eq", "value": "val"}, {"field": "key2", "operator": "neq", "value": "val2"}]}]}`,
 			wantErr:   false,
 		},
 		{
 			name:      "input with null value",
-			jsonInput: *testInput2,
+			jsonInput: *testInputJson2,
 			want:      `{"logic": "or", "conditions": [{"field": "key", "operator": "not-null", "value": null}]}`,
 			wantErr:   false,
 		},
 		{
 			name:      "input with number value",
-			jsonInput: *testInput3,
+			jsonInput: *testInputJson3,
 			want:      `{"logic": "and", "conditions": [{"field": "key", "operator": "gte", "value": 123}]}`,
 			wantErr:   false,
 		},
 		{
 			name:      "input with complex data",
-			jsonInput: *testInput4,
+			jsonInput: *testInputJson4,
 			want:      `{"logic": "or", "conditions": [{"logic": "and", "conditions": [{"field": "key", "operator": "eq", "value": "val"}, {"field": "key2", "operator": "not-empty", "value": null}]}, {"logic": "and", "conditions": [{"field": "key3", "operator": "contains", "value": "val3"}, {"field": "key4", "operator": "gt", "value": 123}]}]}`,
 			wantErr:   false,
 		},
 		{
 			name:      "invalid input - wrong structure",
-			jsonInput: *invalidInput0,
+			jsonInput: *invalidInputJson0,
 			want:      `{"field": "key", "operator": "eq", "value": "val"}`,
 			wantErr:   false,
 		},
 		{
 			name:      "invalid input - JSON string",
-			jsonInput: *invalidInput1,
+			jsonInput: *invalidInputJson1,
 			want:      `"JSON string"`,
 			wantErr:   false,
 		},
 		{
 			name:      "invalid input - not JSON",
-			jsonInput: *invalidInput2,
+			jsonInput: *invalidInputJson2,
 			want:      `not JSON at all`,
 			wantErr:   false,
 		},

@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-var testOutput0, _ = contract.NewInputOutputType(map[string]any{
+var testOutputElastic0, _ = contract.NewInputOutputType(map[string]any{
 	"bool": map[string]any{
 		"must": []map[string]any{
 			{
@@ -17,7 +17,7 @@ var testOutput0, _ = contract.NewInputOutputType(map[string]any{
 		},
 	},
 }, &ElasticOutput{})
-var testOutput1, _ = contract.NewInputOutputType(map[string]any{
+var testOutputElastic1, _ = contract.NewInputOutputType(map[string]any{
 	"bool": map[string]any{
 		"must": []map[string]any{
 			{
@@ -41,7 +41,7 @@ var testOutput1, _ = contract.NewInputOutputType(map[string]any{
 		},
 	},
 }, &ElasticOutput{})
-var testOutput2, _ = contract.NewInputOutputType(map[string]any{
+var testOutputElastic2, _ = contract.NewInputOutputType(map[string]any{
 	"bool": map[string]any{
 		"should": []map[string]any{
 			{
@@ -52,7 +52,7 @@ var testOutput2, _ = contract.NewInputOutputType(map[string]any{
 		},
 	},
 }, &ElasticOutput{})
-var testOutput3, _ = contract.NewInputOutputType(map[string]any{
+var testOutputElastic3, _ = contract.NewInputOutputType(map[string]any{
 	"bool": map[string]any{
 		"must": []map[string]any{
 			{
@@ -65,7 +65,7 @@ var testOutput3, _ = contract.NewInputOutputType(map[string]any{
 		},
 	},
 }, &ElasticOutput{})
-var testOutput4, _ = contract.NewInputOutputType(map[string]any{
+var testOutputElastic4, _ = contract.NewInputOutputType(map[string]any{
 	"bool": map[string]any{
 		"should": []map[string]any{
 			{
@@ -140,7 +140,7 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 					},
 				},
 			},
-			want:    testOutput0,
+			want:    testOutputElastic0,
 			wantErr: false,
 		},
 		{
@@ -171,7 +171,7 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 					},
 				},
 			},
-			want:    testOutput1,
+			want:    testOutputElastic1,
 			wantErr: false,
 		},
 		{
@@ -190,7 +190,7 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 					},
 				},
 			},
-			want:    testOutput2,
+			want:    testOutputElastic2,
 			wantErr: false,
 		},
 		{
@@ -209,7 +209,7 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 					},
 				},
 			},
-			want:    testOutput3,
+			want:    testOutputElastic3,
 			wantErr: false,
 		},
 		{
@@ -256,8 +256,7 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 						},
 					},
 				},
-			},
-			testOutput4,
+			}, testOutputElastic4,
 			false,
 		},
 	}
@@ -291,31 +290,31 @@ func TestElasticOutput_GetDataJson(t *testing.T) {
 		},
 		{
 			name:          "with data",
-			elasticOutput: *testOutput0,
+			elasticOutput: *testOutputElastic0,
 			want:          []byte(`{"bool":{"must":[{"term":{"key":"val"}}]}}`),
 			wantErr:       false,
 		},
 		{
 			name:          "with nested data",
-			elasticOutput: *testOutput1,
+			elasticOutput: *testOutputElastic1,
 			want:          []byte(`{"bool":{"must":[{"bool":{"should":[{"term":{"key":"val"}}],"should_not":[{"term":{"key2":"val2"}}]}}]}}`),
 			wantErr:       false,
 		},
 		{
 			name:          "with null value",
-			elasticOutput: *testOutput2,
+			elasticOutput: *testOutputElastic2,
 			want:          []byte(`{"bool":{"should":[{"exists":{"field":"key"}}]}}`),
 			wantErr:       false,
 		},
 		{
 			name:          "with number value",
-			elasticOutput: *testOutput3,
+			elasticOutput: *testOutputElastic3,
 			want:          []byte(`{"bool":{"must":[{"range":{"key":{"gte":123}}}]}}`),
 			wantErr:       false,
 		},
 		{
 			name:          "with complex data",
-			elasticOutput: *testOutput4,
+			elasticOutput: *testOutputElastic4,
 			want:          []byte(`{"bool":{"should":[{"bool":{"must":[{"term":{"key":"val"}},{"exists":{"field":"key2"}}]}},{"bool":{"must":[{"match":{"key3":"val3"}},{"range":{"key4":{"gt":123}}}]}}]}}`),
 			wantErr:       false,
 		},
@@ -349,31 +348,31 @@ func TestElasticOutput_GetDataString(t *testing.T) {
 		},
 		{
 			name:          "with data",
-			elasticOutput: *testOutput0,
+			elasticOutput: *testOutputElastic0,
 			want:          `{"bool":{"must":[{"term":{"key":"val"}}]}}`,
 			wantErr:       false,
 		},
 		{
 			name:          "with nested data",
-			elasticOutput: *testOutput1,
+			elasticOutput: *testOutputElastic1,
 			want:          `{"bool":{"must":[{"bool":{"should":[{"term":{"key":"val"}}],"should_not":[{"term":{"key2":"val2"}}]}}]}}`,
 			wantErr:       false,
 		},
 		{
 			name:          "with null value",
-			elasticOutput: *testOutput2,
+			elasticOutput: *testOutputElastic2,
 			want:          `{"bool":{"should":[{"exists":{"field":"key"}}]}}`,
 			wantErr:       false,
 		},
 		{
 			name:          "with number value",
-			elasticOutput: *testOutput3,
+			elasticOutput: *testOutputElastic3,
 			want:          `{"bool":{"must":[{"range":{"key":{"gte":123}}}]}}`,
 			wantErr:       false,
 		},
 		{
 			name:          "with complex data",
-			elasticOutput: *testOutput4,
+			elasticOutput: *testOutputElastic4,
 			want:          `{"bool":{"should":[{"bool":{"must":[{"term":{"key":"val"}},{"exists":{"field":"key2"}}]}},{"bool":{"must":[{"match":{"key3":"val3"}},{"range":{"key4":{"gt":123}}}]}}]}}`,
 			wantErr:       false,
 		},
