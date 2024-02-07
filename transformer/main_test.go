@@ -24,6 +24,12 @@ var testOutputElastic2, _ = contract.NewInputOutputType(map[string]any{"bool": m
 var testOutputElastic3, _ = contract.NewInputOutputType(map[string]any{"bool": map[string]any{"must": []map[string]any{{"range": map[string]any{"key": map[string]any{"gte": 123.0}}}}}}, &output.ElasticOutput{})
 var testOutputElastic4, _ = contract.NewInputOutputType(map[string]any{"bool": map[string]any{"should": []map[string]any{{"bool": map[string]any{"must": []map[string]any{{"term": map[string]any{"key.lowersortable": "val"}}, {"exists": map[string]any{"field": "key2"}}}}}, {"bool": map[string]any{"must": []map[string]any{{"wildcard": map[string]any{"key3.lowersortable": "*val3*"}}, {"range": map[string]any{"key4": map[string]any{"gt": 123.0}}}}}}}}}, &output.ElasticOutput{})
 
+var testOutputSQL0, _ = contract.NewInputOutputType(output.SQLTuple{Query: "key = $1", Params: []any{"val"}}, &output.SQLOutput{})
+var testOutputSQL1, _ = contract.NewInputOutputType(output.SQLTuple{Query: "(key = $1 OR key2 != $2)", Params: []any{"val", "val2"}}, &output.SQLOutput{})
+var testOutputSQL2, _ = contract.NewInputOutputType(output.SQLTuple{Query: "key IS NOT NULL", Params: nil}, &output.SQLOutput{})
+var testOutputSQL3, _ = contract.NewInputOutputType(output.SQLTuple{Query: "key >= $1", Params: []any{123.0}}, &output.SQLOutput{})
+var testOutputSQL4, _ = contract.NewInputOutputType(output.SQLTuple{Query: "((key = $1 AND key2 != '') OR (key3 LIKE $2 AND key4 > $3))", Params: []any{"val", "%val3%", 123.0}}, &output.SQLOutput{})
+
 func TestBasic(t *testing.T) {
 	it := input.JsonInputTransformer{}
 	ot := output.ElasticOutputTransformer{}
@@ -85,6 +91,96 @@ func TestFilterTransformer_TransformJsonToElastic(t1 *testing.T) {
 			t:       *ft,
 			input:   *testInputJson4,
 			want:    testOutputElastic4,
+			wantErr: false,
+		},
+		{
+			name:    "invalid input - wrong structure",
+			t:       *ft,
+			input:   *invalidInputJson0,
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "invalid input - JSON string",
+			t:       *ft,
+			input:   *invalidInputJson1,
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "invalid input - not a JSON",
+			t:       *ft,
+			input:   *invalidInputJson2,
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t1.Run(tt.name, func(t1 *testing.T) {
+			got, err := tt.t.Transform(&tt.input)
+			if (err != nil) != tt.wantErr {
+				t1.Errorf("Transform() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t1.Errorf("Transform() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFilterTransformer_TransformJsonToSQL(t1 *testing.T) {
+	it := input.JsonInputTransformer{}
+	ot := output.SQLOutputTransformer{}
+	ft := NewFilterTransformer[[]byte, output.SQLTuple, *input.JsonInput, *output.SQLOutput](&it, &ot)
+	type testCase struct {
+		name    string
+		t       FilterTransformer[[]byte, output.SQLTuple, *input.JsonInput, *output.SQLOutput]
+		input   input.JsonInput
+		want    *output.SQLOutput
+		wantErr bool
+	}
+	tests := []testCase{
+		{
+			name:    "empty",
+			t:       *ft,
+			input:   input.JsonInput{},
+			want:    &output.SQLOutput{},
+			wantErr: false,
+		},
+		{
+			name:    "with data",
+			t:       *ft,
+			input:   *testInputJson0,
+			want:    testOutputSQL0,
+			wantErr: false,
+		},
+		{
+			name:    "with nested data",
+			t:       *ft,
+			input:   *testInputJson1,
+			want:    testOutputSQL1,
+			wantErr: false,
+		},
+		{
+			name:    "with null value",
+			t:       *ft,
+			input:   *testInputJson2,
+			want:    testOutputSQL2,
+			wantErr: false,
+		},
+		{
+			name:    "with number value",
+			t:       *ft,
+			input:   *testInputJson3,
+			want:    testOutputSQL3,
+			wantErr: false,
+		},
+		{
+			name:    "with complex data",
+			t:       *ft,
+			input:   *testInputJson4,
+			want:    testOutputSQL4,
 			wantErr: false,
 		},
 		{

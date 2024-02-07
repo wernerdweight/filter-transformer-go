@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/wernerdweight/filter-transformer-go/transformer/contract"
+	"log"
 	"regexp"
 	"strings"
 )
@@ -22,6 +23,9 @@ func (o *SQLOutput) GetDataJson() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	if rawData.Query == "" {
+		return nil, nil
+	}
 	jsonData, err := json.Marshal(rawData)
 	if err != nil {
 		return nil, err
@@ -30,11 +34,12 @@ func (o *SQLOutput) GetDataJson() ([]byte, error) {
 }
 
 func (o *SQLOutput) GetDataString() (string, error) {
+	log.Printf("A call to GetDataString on SQLOutput detected - this is not safe! Only meant for debugging purposes!")
 	rawData, err := o.GetData()
 	if err != nil {
 		return "", err
 	}
-	template := regexp.MustCompile(`\$([0-9]+)`).ReplaceAllString(rawData.Query, "%[\\1]v")
+	template := regexp.MustCompile(`\$([0-9]+)`).ReplaceAllString(rawData.Query, "'%[$1]v'")
 	return fmt.Sprintf(template, rawData.Params...), nil
 }
 
@@ -42,9 +47,8 @@ type SQLOutputTransformer struct {
 }
 
 func addToParams(params *[]any, value any) int {
-	index := len(*params)
 	*params = append(*params, value)
-	return index
+	return len(*params)
 }
 
 var conditionResolversSQL = map[contract.FilterOperator]func(contract.FilterCondition, *[]any) string{
@@ -162,7 +166,11 @@ func transformFiltersSQL(filters contract.Filters, target *string, params *[]any
 	if len(conditions) == 0 {
 		return
 	}
-	*target = strings.Join(conditions, fmt.Sprintf(" %s ", strings.ToUpper(string(filters.Logic))))
+	if len(conditions) == 1 {
+		*target = conditions[0]
+		return
+	}
+	*target = fmt.Sprintf("(%s)", strings.Join(conditions, fmt.Sprintf(" %s ", strings.ToUpper(string(filters.Logic)))))
 }
 
 func (t *SQLOutputTransformer) Transform(input contract.Filters) (*SQLOutput, error) {

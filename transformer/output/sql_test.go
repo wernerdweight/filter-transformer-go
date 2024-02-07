@@ -11,19 +11,19 @@ var testOutputSQL0, _ = contract.NewInputOutputType(SQLTuple{
 	Params: []any{"val"},
 }, &SQLOutput{})
 var testOutputSQL1, _ = contract.NewInputOutputType(SQLTuple{
-	Query:  "key = $1 OR key2 != $2",
+	Query:  "(key = $1 OR key2 != $2)",
 	Params: []any{"val", "val2"},
 }, &SQLOutput{})
 var testOutputSQL2, _ = contract.NewInputOutputType(SQLTuple{
 	Query:  "key IS NOT NULL",
-	Params: []any{},
+	Params: nil,
 }, &SQLOutput{})
 var testOutputSQL3, _ = contract.NewInputOutputType(SQLTuple{
 	Query:  "key >= $1",
 	Params: []any{123},
 }, &SQLOutput{})
 var testOutputSQL4, _ = contract.NewInputOutputType(SQLTuple{
-	Query:  "(key = $1 AND key2 IS NOT NULL) OR (key3 LIKE $2 AND key4 > $3)",
+	Query:  "((key = $1 AND key2 != '') OR (key3 LIKE $2 AND key4 > $3))",
 	Params: []any{"val", "%val3%", 123},
 }, &SQLOutput{})
 
@@ -212,31 +212,31 @@ func TestSQLOutput_GetDataJson(t *testing.T) {
 		{
 			name:          "with data",
 			elasticOutput: *testOutputSQL0,
-			want:          []byte(`{"bool":{"must":[{"term":{"key.lowersortable":"val"}}]}}`),
+			want:          []byte(`{"query":"key = $1","params":["val"]}`),
 			wantErr:       false,
 		},
 		{
 			name:          "with nested data",
 			elasticOutput: *testOutputSQL1,
-			want:          []byte(`{"bool":{"must":[{"bool":{"should":[{"term":{"key.lowersortable":"val"}},{"bool":{"must_not":[{"term":{"key2.lowersortable":"val2"}}]}}]}}]}}`),
+			want:          []byte(`{"query":"(key = $1 OR key2 != $2)","params":["val","val2"]}`),
 			wantErr:       false,
 		},
 		{
 			name:          "with null value",
 			elasticOutput: *testOutputSQL2,
-			want:          []byte(`{"bool":{"should":[{"exists":{"field":"key"}}]}}`),
+			want:          []byte(`{"query":"key IS NOT NULL","params":null}`),
 			wantErr:       false,
 		},
 		{
 			name:          "with number value",
 			elasticOutput: *testOutputSQL3,
-			want:          []byte(`{"bool":{"must":[{"range":{"key":{"gte":123}}}]}}`),
+			want:          []byte(`{"query":"key \u003e= $1","params":[123]}`),
 			wantErr:       false,
 		},
 		{
 			name:          "with complex data",
 			elasticOutput: *testOutputSQL4,
-			want:          []byte(`{"bool":{"should":[{"bool":{"must":[{"term":{"key.lowersortable":"val"}},{"exists":{"field":"key2"}}]}},{"bool":{"must":[{"wildcard":{"key3.lowersortable":"*val3*"}},{"range":{"key4":{"gt":123}}}]}}]}}`),
+			want:          []byte(`{"query":"((key = $1 AND key2 != '') OR (key3 LIKE $2 AND key4 \u003e $3))","params":["val","%val3%",123]}`),
 			wantErr:       false,
 		},
 	}
@@ -270,31 +270,31 @@ func TestSQLOutput_GetDataString(t *testing.T) {
 		{
 			name:          "with data",
 			elasticOutput: *testOutputSQL0,
-			want:          `{"bool":{"must":[{"term":{"key.lowersortable":"val"}}]}}`,
+			want:          `key = 'val'`,
 			wantErr:       false,
 		},
 		{
 			name:          "with nested data",
 			elasticOutput: *testOutputSQL1,
-			want:          `{"bool":{"must":[{"bool":{"should":[{"term":{"key.lowersortable":"val"}},{"bool":{"must_not":[{"term":{"key2.lowersortable":"val2"}}]}}]}}]}}`,
+			want:          `(key = 'val' OR key2 != 'val2')`,
 			wantErr:       false,
 		},
 		{
 			name:          "with null value",
 			elasticOutput: *testOutputSQL2,
-			want:          `{"bool":{"should":[{"exists":{"field":"key"}}]}}`,
+			want:          `key IS NOT NULL`,
 			wantErr:       false,
 		},
 		{
 			name:          "with number value",
 			elasticOutput: *testOutputSQL3,
-			want:          `{"bool":{"must":[{"range":{"key":{"gte":123}}}]}}`,
+			want:          `key >= '123'`,
 			wantErr:       false,
 		},
 		{
 			name:          "with complex data",
 			elasticOutput: *testOutputSQL4,
-			want:          `{"bool":{"should":[{"bool":{"must":[{"term":{"key.lowersortable":"val"}},{"exists":{"field":"key2"}}]}},{"bool":{"must":[{"wildcard":{"key3.lowersortable":"*val3*"}},{"range":{"key4":{"gt":123}}}]}}]}}`,
+			want:          `((key = 'val' AND key2 != '') OR (key3 LIKE '%val3%' AND key4 > '123'))`,
 			wantErr:       false,
 		},
 	}
@@ -480,7 +480,7 @@ func Test_transformConditionSQL(t *testing.T) {
 				params:           &[]any{},
 			},
 			wantConditions: &[]string{
-				"key >= $1 OR key IS NULL",
+				"(key >= $1 OR key IS NULL)",
 			},
 			wantParams: &[]any{
 				123,
@@ -498,7 +498,7 @@ func Test_transformConditionSQL(t *testing.T) {
 				params:           &[]any{},
 			},
 			wantConditions: &[]string{
-				"key >= $1 OR key IS NULL",
+				"(key >= $1 OR key IS NULL)",
 			},
 			wantParams: &[]any{
 				"2021-01-01",
@@ -588,7 +588,7 @@ func Test_transformConditionSQL(t *testing.T) {
 				params:           &[]any{},
 			},
 			wantConditions: &[]string{
-				"key <= $1 OR key IS NULL",
+				"(key <= $1 OR key IS NULL)",
 			},
 			wantParams: &[]any{
 				123,
@@ -606,7 +606,7 @@ func Test_transformConditionSQL(t *testing.T) {
 				params:           &[]any{},
 			},
 			wantConditions: &[]string{
-				"key <= $1 OR key IS NULL",
+				"(key <= $1 OR key IS NULL)",
 			},
 			wantParams: &[]any{
 				"2021-01-01",
@@ -746,9 +746,7 @@ func Test_transformConditionSQL(t *testing.T) {
 			wantConditions: &[]string{
 				"key != ''",
 			},
-			wantParams: &[]any{
-				"",
-			},
+			wantParams: &[]any{},
 		},
 		{
 			name: "in",
@@ -837,10 +835,10 @@ func Test_transformConditionSQL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			transformConditionSQL(tt.args.condition, tt.args.outputConditions, tt.args.params)
 			if !reflect.DeepEqual(tt.args.outputConditions, tt.wantConditions) {
-				t.Errorf("transformConditionSQL() positive: got = %v, want %v", tt.args.outputConditions, tt.wantConditions)
+				t.Errorf("transformConditionSQL() conditions: got = %v, want %v", tt.args.outputConditions, tt.wantConditions)
 			}
 			if !reflect.DeepEqual(tt.args.params, tt.wantParams) {
-				t.Errorf("transformConditionSQL() negative: got = %v, want %v", tt.args.params, tt.wantParams)
+				t.Errorf("transformConditionSQL() params: got = %v, want %v", tt.args.params, tt.wantParams)
 			}
 		})
 	}
