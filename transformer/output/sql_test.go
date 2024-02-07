@@ -6,118 +6,35 @@ import (
 	"testing"
 )
 
-var testOutputElastic0, _ = contract.NewInputOutputType(map[string]any{
-	"bool": map[string]any{
-		"must": []map[string]any{
-			{
-				"term": map[string]any{
-					"key.lowersortable": "val",
-				},
-			},
-		},
-	},
-}, &ElasticOutput{})
-var testOutputElastic1, _ = contract.NewInputOutputType(map[string]any{
-	"bool": map[string]any{
-		"must": []map[string]any{
-			{
-				"bool": map[string]any{
-					"should": []map[string]any{
-						{
-							"term": map[string]any{
-								"key.lowersortable": "val",
-							},
-						},
-						{
-							"bool": map[string]any{
-								"must_not": []map[string]any{
-									{
-										"term": map[string]any{
-											"key2.lowersortable": "val2",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	},
-}, &ElasticOutput{})
-var testOutputElastic2, _ = contract.NewInputOutputType(map[string]any{
-	"bool": map[string]any{
-		"should": []map[string]any{
-			{
-				"exists": map[string]any{
-					"field": "key",
-				},
-			},
-		},
-	},
-}, &ElasticOutput{})
-var testOutputElastic3, _ = contract.NewInputOutputType(map[string]any{
-	"bool": map[string]any{
-		"must": []map[string]any{
-			{
-				"range": map[string]any{
-					"key": map[string]any{
-						"gte": 123,
-					},
-				},
-			},
-		},
-	},
-}, &ElasticOutput{})
-var testOutputElastic4, _ = contract.NewInputOutputType(map[string]any{
-	"bool": map[string]any{
-		"should": []map[string]any{
-			{
-				"bool": map[string]any{
-					"must": []map[string]any{
-						{
-							"term": map[string]any{
-								"key.lowersortable": "val",
-							},
-						},
-						{
-							"exists": map[string]any{
-								"field": "key2",
-							},
-						},
-					},
-				},
-			},
-			{
-				"bool": map[string]any{
-					"must": []map[string]any{
-						{
-							"wildcard": map[string]any{
-								"key3.lowersortable": "*val3*",
-							},
-						},
-						{
-							"range": map[string]any{
-								"key4": map[string]any{
-									"gt": 123,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	},
-}, &ElasticOutput{})
+var testOutputSQL0, _ = contract.NewInputOutputType(SQLTuple{
+	Query:  "key = $1",
+	Params: []any{"val"},
+}, &SQLOutput{})
+var testOutputSQL1, _ = contract.NewInputOutputType(SQLTuple{
+	Query:  "key = $1 OR key2 != $2",
+	Params: []any{"val", "val2"},
+}, &SQLOutput{})
+var testOutputSQL2, _ = contract.NewInputOutputType(SQLTuple{
+	Query:  "key IS NOT NULL",
+	Params: []any{},
+}, &SQLOutput{})
+var testOutputSQL3, _ = contract.NewInputOutputType(SQLTuple{
+	Query:  "key >= $1",
+	Params: []any{123},
+}, &SQLOutput{})
+var testOutputSQL4, _ = contract.NewInputOutputType(SQLTuple{
+	Query:  "(key = $1 AND key2 IS NOT NULL) OR (key3 LIKE $2 AND key4 > $3)",
+	Params: []any{"val", "%val3%", 123},
+}, &SQLOutput{})
 
-func TestElasticOutputTransformer_Transform(t1 *testing.T) {
+func TestSQLOutputTransformer_Transform(t1 *testing.T) {
 	type args struct {
 		input contract.Filters
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want    *ElasticOutput
+		want    *SQLOutput
 		wantErr bool
 	}{
 		{
@@ -125,7 +42,7 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 			args: args{
 				input: contract.Filters{},
 			},
-			want:    &ElasticOutput{},
+			want:    &SQLOutput{},
 			wantErr: false,
 		},
 		{
@@ -144,7 +61,7 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 					},
 				},
 			},
-			want:    testOutputElastic0,
+			want:    testOutputSQL0,
 			wantErr: false,
 		},
 		{
@@ -175,7 +92,7 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 					},
 				},
 			},
-			want:    testOutputElastic1,
+			want:    testOutputSQL1,
 			wantErr: false,
 		},
 		{
@@ -194,7 +111,7 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 					},
 				},
 			},
-			want:    testOutputElastic2,
+			want:    testOutputSQL2,
 			wantErr: false,
 		},
 		{
@@ -213,7 +130,7 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 					},
 				},
 			},
-			want:    testOutputElastic3,
+			want:    testOutputSQL3,
 			wantErr: false,
 		},
 		{
@@ -260,13 +177,13 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 						},
 					},
 				},
-			}, testOutputElastic4,
+			}, testOutputSQL4,
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t1.Run(tt.name, func(t1 *testing.T) {
-			t := &ElasticOutputTransformer{}
+			t := &SQLOutputTransformer{}
 			got, err := t.Transform(tt.args.input)
 			if (err != nil) != tt.wantErr {
 				t1.Errorf("Transform() error = %v, wantErr %v", err, tt.wantErr)
@@ -279,46 +196,46 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 	}
 }
 
-func TestElasticOutput_GetDataJson(t *testing.T) {
+func TestSQLOutput_GetDataJson(t *testing.T) {
 	tests := []struct {
 		name          string
-		elasticOutput ElasticOutput
+		elasticOutput SQLOutput
 		want          []byte
 		wantErr       bool
 	}{
 		{
 			name:          "empty",
-			elasticOutput: ElasticOutput{},
+			elasticOutput: SQLOutput{},
 			want:          nil,
 			wantErr:       false,
 		},
 		{
 			name:          "with data",
-			elasticOutput: *testOutputElastic0,
+			elasticOutput: *testOutputSQL0,
 			want:          []byte(`{"bool":{"must":[{"term":{"key.lowersortable":"val"}}]}}`),
 			wantErr:       false,
 		},
 		{
 			name:          "with nested data",
-			elasticOutput: *testOutputElastic1,
+			elasticOutput: *testOutputSQL1,
 			want:          []byte(`{"bool":{"must":[{"bool":{"should":[{"term":{"key.lowersortable":"val"}},{"bool":{"must_not":[{"term":{"key2.lowersortable":"val2"}}]}}]}}]}}`),
 			wantErr:       false,
 		},
 		{
 			name:          "with null value",
-			elasticOutput: *testOutputElastic2,
+			elasticOutput: *testOutputSQL2,
 			want:          []byte(`{"bool":{"should":[{"exists":{"field":"key"}}]}}`),
 			wantErr:       false,
 		},
 		{
 			name:          "with number value",
-			elasticOutput: *testOutputElastic3,
+			elasticOutput: *testOutputSQL3,
 			want:          []byte(`{"bool":{"must":[{"range":{"key":{"gte":123}}}]}}`),
 			wantErr:       false,
 		},
 		{
 			name:          "with complex data",
-			elasticOutput: *testOutputElastic4,
+			elasticOutput: *testOutputSQL4,
 			want:          []byte(`{"bool":{"should":[{"bool":{"must":[{"term":{"key.lowersortable":"val"}},{"exists":{"field":"key2"}}]}},{"bool":{"must":[{"wildcard":{"key3.lowersortable":"*val3*"}},{"range":{"key4":{"gt":123}}}]}}]}}`),
 			wantErr:       false,
 		},
@@ -337,46 +254,46 @@ func TestElasticOutput_GetDataJson(t *testing.T) {
 	}
 }
 
-func TestElasticOutput_GetDataString(t *testing.T) {
+func TestSQLOutput_GetDataString(t *testing.T) {
 	tests := []struct {
 		name          string
-		elasticOutput ElasticOutput
+		elasticOutput SQLOutput
 		want          string
 		wantErr       bool
 	}{
 		{
 			name:          "empty",
-			elasticOutput: ElasticOutput{},
+			elasticOutput: SQLOutput{},
 			want:          "",
 			wantErr:       false,
 		},
 		{
 			name:          "with data",
-			elasticOutput: *testOutputElastic0,
+			elasticOutput: *testOutputSQL0,
 			want:          `{"bool":{"must":[{"term":{"key.lowersortable":"val"}}]}}`,
 			wantErr:       false,
 		},
 		{
 			name:          "with nested data",
-			elasticOutput: *testOutputElastic1,
+			elasticOutput: *testOutputSQL1,
 			want:          `{"bool":{"must":[{"bool":{"should":[{"term":{"key.lowersortable":"val"}},{"bool":{"must_not":[{"term":{"key2.lowersortable":"val2"}}]}}]}}]}}`,
 			wantErr:       false,
 		},
 		{
 			name:          "with null value",
-			elasticOutput: *testOutputElastic2,
+			elasticOutput: *testOutputSQL2,
 			want:          `{"bool":{"should":[{"exists":{"field":"key"}}]}}`,
 			wantErr:       false,
 		},
 		{
 			name:          "with number value",
-			elasticOutput: *testOutputElastic3,
+			elasticOutput: *testOutputSQL3,
 			want:          `{"bool":{"must":[{"range":{"key":{"gte":123}}}]}}`,
 			wantErr:       false,
 		},
 		{
 			name:          "with complex data",
-			elasticOutput: *testOutputElastic4,
+			elasticOutput: *testOutputSQL4,
 			want:          `{"bool":{"should":[{"bool":{"must":[{"term":{"key.lowersortable":"val"}},{"exists":{"field":"key2"}}]}},{"bool":{"must":[{"wildcard":{"key3.lowersortable":"*val3*"}},{"range":{"key4":{"gt":123}}}]}}]}}`,
 			wantErr:       false,
 		},
@@ -395,17 +312,17 @@ func TestElasticOutput_GetDataString(t *testing.T) {
 	}
 }
 
-func Test_transformConditionElastic(t *testing.T) {
+func Test_transformConditionSQL(t *testing.T) {
 	type args struct {
-		condition          contract.FilterCondition
-		positiveConditions *[]map[string]any
-		negativeConditions *[]map[string]any
+		condition        contract.FilterCondition
+		outputConditions *[]string
+		params           *[]any
 	}
 	tests := []struct {
-		name         string
-		args         args
-		wantPositive *[]map[string]any
-		wantNegative *[]map[string]any
+		name           string
+		args           args
+		wantConditions *[]string
+		wantParams     *[]any
 	}{
 		{
 			name: "equal",
@@ -415,17 +332,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorEqual,
 					Value:    "val",
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"term": map[string]any{
-						"key.lowersortable": "val",
-					},
-				},
+			wantConditions: &[]string{
+				"key = $1",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				"val",
+			},
 		},
 		{
 			name: "equal number",
@@ -435,17 +350,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorEqual,
 					Value:    123,
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"term": map[string]any{
-						"key": 123,
-					},
-				},
+			wantConditions: &[]string{
+				"key = $1",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				123,
+			},
 		},
 		{
 			name: "not equal",
@@ -455,16 +368,14 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorNotEqual,
 					Value:    "val",
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{},
-			wantNegative: &[]map[string]any{
-				{
-					"term": map[string]any{
-						"key.lowersortable": "val",
-					},
-				},
+			wantConditions: &[]string{
+				"key != $1",
+			},
+			wantParams: &[]any{
+				"val",
 			},
 		},
 		{
@@ -475,16 +386,14 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorNotEqual,
 					Value:    123,
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{},
-			wantNegative: &[]map[string]any{
-				{
-					"term": map[string]any{
-						"key": 123,
-					},
-				},
+			wantConditions: &[]string{
+				"key != $1",
+			},
+			wantParams: &[]any{
+				123,
 			},
 		},
 		{
@@ -495,19 +404,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorGreaterThan,
 					Value:    123,
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"range": map[string]any{
-						"key": map[string]any{
-							"gt": 123,
-						},
-					},
-				},
+			wantConditions: &[]string{
+				"key > $1",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				123,
+			},
 		},
 		{
 			name: "greater than date",
@@ -517,19 +422,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorGreaterThan,
 					Value:    "2021-01-01",
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"range": map[string]any{
-						"key": map[string]any{
-							"gt": "2021-01-01",
-						},
-					},
-				},
+			wantConditions: &[]string{
+				"key > $1",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				"2021-01-01",
+			},
 		},
 		{
 			name: "greater than or equal",
@@ -539,19 +440,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorGreaterThanOrEqual,
 					Value:    123,
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"range": map[string]any{
-						"key": map[string]any{
-							"gte": 123,
-						},
-					},
-				},
+			wantConditions: &[]string{
+				"key >= $1",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				123,
+			},
 		},
 		{
 			name: "greater than or equal date",
@@ -561,19 +458,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorGreaterThanOrEqual,
 					Value:    "2021-01-01",
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"range": map[string]any{
-						"key": map[string]any{
-							"gte": "2021-01-01",
-						},
-					},
-				},
+			wantConditions: &[]string{
+				"key >= $1",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				"2021-01-01",
+			},
 		},
 		{
 			name: "greater than or equal or nil",
@@ -583,36 +476,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorGreaterThanOrEqualOrNil,
 					Value:    123,
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"bool": map[string]any{
-						"should": []map[string]any{
-							{
-								"range": map[string]any{
-									"key": map[string]any{
-										"gte": 123,
-									},
-								},
-							},
-							{
-								"bool": map[string]any{
-									"must_not": []map[string]any{
-										{
-											"exists": map[string]any{
-												"field": "key",
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
+			wantConditions: &[]string{
+				"key >= $1 OR key IS NULL",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				123,
+			},
 		},
 		{
 			name: "greater than or equal or nil date",
@@ -622,36 +494,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorGreaterThanOrEqualOrNil,
 					Value:    "2021-01-01",
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"bool": map[string]any{
-						"should": []map[string]any{
-							{
-								"range": map[string]any{
-									"key": map[string]any{
-										"gte": "2021-01-01",
-									},
-								},
-							},
-							{
-								"bool": map[string]any{
-									"must_not": []map[string]any{
-										{
-											"exists": map[string]any{
-												"field": "key",
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
+			wantConditions: &[]string{
+				"key >= $1 OR key IS NULL",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				"2021-01-01",
+			},
 		},
 		{
 			name: "lower than",
@@ -661,19 +512,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorLowerThan,
 					Value:    123,
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"range": map[string]any{
-						"key": map[string]any{
-							"lt": 123,
-						},
-					},
-				},
+			wantConditions: &[]string{
+				"key < $1",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				123,
+			},
 		},
 		{
 			name: "lower than date",
@@ -683,19 +530,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorLowerThan,
 					Value:    "2021-01-01",
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"range": map[string]any{
-						"key": map[string]any{
-							"lt": "2021-01-01",
-						},
-					},
-				},
+			wantConditions: &[]string{
+				"key < $1",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				"2021-01-01",
+			},
 		},
 		{
 			name: "lower than or equal",
@@ -705,19 +548,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorLowerThanOrEqual,
 					Value:    123,
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"range": map[string]any{
-						"key": map[string]any{
-							"lte": 123,
-						},
-					},
-				},
+			wantConditions: &[]string{
+				"key <= $1",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				123,
+			},
 		},
 		{
 			name: "lower than or equal date",
@@ -727,19 +566,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorLowerThanOrEqual,
 					Value:    "2021-01-01",
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"range": map[string]any{
-						"key": map[string]any{
-							"lte": "2021-01-01",
-						},
-					},
-				},
+			wantConditions: &[]string{
+				"key <= $1",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				"2021-01-01",
+			},
 		},
 		{
 			name: "lower than or equal or nil",
@@ -749,36 +584,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorLowerThanOrEqualOrNil,
 					Value:    123,
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"bool": map[string]any{
-						"should": []map[string]any{
-							{
-								"range": map[string]any{
-									"key": map[string]any{
-										"lte": 123,
-									},
-								},
-							},
-							{
-								"bool": map[string]any{
-									"must_not": []map[string]any{
-										{
-											"exists": map[string]any{
-												"field": "key",
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
+			wantConditions: &[]string{
+				"key <= $1 OR key IS NULL",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				123,
+			},
 		},
 		{
 			name: "lower than or equal or nil date",
@@ -788,36 +602,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorLowerThanOrEqualOrNil,
 					Value:    "2021-01-01",
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"bool": map[string]any{
-						"should": []map[string]any{
-							{
-								"range": map[string]any{
-									"key": map[string]any{
-										"lte": "2021-01-01",
-									},
-								},
-							},
-							{
-								"bool": map[string]any{
-									"must_not": []map[string]any{
-										{
-											"exists": map[string]any{
-												"field": "key",
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
+			wantConditions: &[]string{
+				"key <= $1 OR key IS NULL",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				"2021-01-01",
+			},
 		},
 		{
 			name: "begins",
@@ -827,17 +620,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorBegins,
 					Value:    "val",
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"prefix": map[string]any{
-						"key.lowersortable": "val",
-					},
-				},
+			wantConditions: &[]string{
+				"key LIKE $1",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				"val%",
+			},
 		},
 		{
 			name: "contains",
@@ -847,17 +638,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorContains,
 					Value:    "val",
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"wildcard": map[string]any{
-						"key.lowersortable": "*val*",
-					},
-				},
+			wantConditions: &[]string{
+				"key LIKE $1",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				"%val%",
+			},
 		},
 		{
 			name: "not contains",
@@ -867,16 +656,14 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorNotContains,
 					Value:    "val",
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{},
-			wantNegative: &[]map[string]any{
-				{
-					"wildcard": map[string]any{
-						"key.lowersortable": "*val*",
-					},
-				},
+			wantConditions: &[]string{
+				"key NOT LIKE $1",
+			},
+			wantParams: &[]any{
+				"%val%",
 			},
 		},
 		{
@@ -887,17 +674,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorEnds,
 					Value:    "val",
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"wildcard": map[string]any{
-						"key.lowersortable": "*val",
-					},
-				},
+			wantConditions: &[]string{
+				"key LIKE $1",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				"%val",
+			},
 		},
 		{
 			name: "is nil",
@@ -907,17 +692,13 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorIsNil,
 					Value:    nil,
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{},
-			wantNegative: &[]map[string]any{
-				{
-					"exists": map[string]any{
-						"field": "key",
-					},
-				},
+			wantConditions: &[]string{
+				"key IS NULL",
 			},
+			wantParams: &[]any{},
 		},
 		{
 			name: "is not nil",
@@ -927,17 +708,13 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorIsNotNil,
 					Value:    nil,
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"exists": map[string]any{
-						"field": "key",
-					},
-				},
+			wantConditions: &[]string{
+				"key IS NOT NULL",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{},
 		},
 		{
 			name: "is empty",
@@ -947,17 +724,13 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorIsEmpty,
 					Value:    nil,
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{},
-			wantNegative: &[]map[string]any{
-				{
-					"exists": map[string]any{
-						"field": "key",
-					},
-				},
+			wantConditions: &[]string{
+				"key = ''",
 			},
+			wantParams: &[]any{},
 		},
 		{
 			name: "is not empty",
@@ -967,17 +740,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorIsNotEmpty,
 					Value:    nil,
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"exists": map[string]any{
-						"field": "key",
-					},
-				},
+			wantConditions: &[]string{
+				"key != ''",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				"",
+			},
 		},
 		{
 			name: "in",
@@ -987,17 +758,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorIn,
 					Value:    []interface{}{"val1", "val2"},
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"terms": map[string]any{
-						"key.lowersortable": []interface{}{"val1", "val2"},
-					},
-				},
+			wantConditions: &[]string{
+				"key IN ($1, $2)",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				"val1", "val2",
+			},
 		},
 		{
 			name: "in numbers",
@@ -1007,17 +776,15 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorIn,
 					Value:    []interface{}{123, 456},
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{
-				{
-					"terms": map[string]any{
-						"key": []interface{}{123, 456},
-					},
-				},
+			wantConditions: &[]string{
+				"key IN ($1, $2)",
 			},
-			wantNegative: &[]map[string]any{},
+			wantParams: &[]any{
+				123, 456,
+			},
 		},
 		{
 			name: "not in",
@@ -1027,16 +794,14 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorNotIn,
 					Value:    []interface{}{"val1", "val2"},
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{},
-			wantNegative: &[]map[string]any{
-				{
-					"terms": map[string]any{
-						"key.lowersortable": []interface{}{"val1", "val2"},
-					},
-				},
+			wantConditions: &[]string{
+				"key NOT IN ($1, $2)",
+			},
+			wantParams: &[]any{
+				"val1", "val2",
 			},
 		},
 		{
@@ -1047,37 +812,35 @@ func Test_transformConditionElastic(t *testing.T) {
 					Operator: contract.FilterOperatorNotIn,
 					Value:    []interface{}{123, 456},
 				},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{},
-			wantNegative: &[]map[string]any{
-				{
-					"terms": map[string]any{
-						"key": []interface{}{123, 456},
-					},
-				},
+			wantConditions: &[]string{
+				"key NOT IN ($1, $2)",
+			},
+			wantParams: &[]any{
+				123, 456,
 			},
 		},
 		{
 			name: "empty condition",
 			args: args{
-				condition:          contract.FilterCondition{},
-				positiveConditions: &[]map[string]any{},
-				negativeConditions: &[]map[string]any{},
+				condition:        contract.FilterCondition{},
+				outputConditions: &[]string{},
+				params:           &[]any{},
 			},
-			wantPositive: &[]map[string]any{},
-			wantNegative: &[]map[string]any{},
+			wantConditions: &[]string{},
+			wantParams:     &[]any{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			transformConditionElastic(tt.args.condition, tt.args.positiveConditions, tt.args.negativeConditions)
-			if !reflect.DeepEqual(tt.args.positiveConditions, tt.wantPositive) {
-				t.Errorf("transformConditionElastic() positive: got = %v, want %v", tt.args.positiveConditions, tt.wantPositive)
+			transformConditionSQL(tt.args.condition, tt.args.outputConditions, tt.args.params)
+			if !reflect.DeepEqual(tt.args.outputConditions, tt.wantConditions) {
+				t.Errorf("transformConditionSQL() positive: got = %v, want %v", tt.args.outputConditions, tt.wantConditions)
 			}
-			if !reflect.DeepEqual(tt.args.negativeConditions, tt.wantNegative) {
-				t.Errorf("transformConditionElastic() negative: got = %v, want %v", tt.args.negativeConditions, tt.wantNegative)
+			if !reflect.DeepEqual(tt.args.params, tt.wantParams) {
+				t.Errorf("transformConditionSQL() negative: got = %v, want %v", tt.args.params, tt.wantParams)
 			}
 		})
 	}
