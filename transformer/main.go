@@ -41,3 +41,6 @@ func NewJsonToSQLFilterTransformer() *FilterTransformer[[]byte, output.SQLTuple,
 	ot := output.SQLOutputTransformer{}
 	return NewFilterTransformer[[]byte, output.SQLTuple, *input.JsonInput, *output.SQLOutput](&it, &ot)
 }
+
+// TODO: NewFormDataToElasticFilterTransformer
+// TODO: NewFormDataToSQLFilterTransformer
