@@ -29,7 +29,7 @@ Usage
 
 The filter structure needs to be in the following format:
 
-```json
+```js
 {
   filter: {
     logic: "and|or",
@@ -171,11 +171,11 @@ You can create custom input and output transformers by implementing the `InputTr
 
 ```go
 type InputTransformerInterface[T any, IOT InputOutputInterface[T]] interface {
-	Transform(input IOT) (Filters, *Error)
+    Transform(input IOT) (Filters, *Error)
 }
 
 type OutputTransformerInterface[T any, IOT InputOutputInterface[T]] interface {
-	Transform(input Filters) (IOT, *Error)
+    Transform(input Filters) (IOT, *Error)
 }
 ```
 
