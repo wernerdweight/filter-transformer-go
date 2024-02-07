@@ -1,6 +1,10 @@
 package transformer
 
-import "github.com/wernerdweight/filter-transformer-go/transformer/contract"
+import (
+	"github.com/wernerdweight/filter-transformer-go/transformer/contract"
+	"github.com/wernerdweight/filter-transformer-go/transformer/input"
+	"github.com/wernerdweight/filter-transformer-go/transformer/output"
+)
 
 type FilterTransformer[IDT any, ODT any, IT contract.InputOutputInterface[IDT], OT contract.InputOutputInterface[ODT]] struct {
 	inputTransformer  contract.InputTransformerInterface[IDT, IT]
@@ -24,4 +28,16 @@ func NewFilterTransformer[IDT any, ODT any, IT contract.InputOutputInterface[IDT
 		inputTransformer:  inputTransformer,
 		outputTransformer: outputTransformer,
 	}
+}
+
+func NewJsonToElasticFilterTransformer() *FilterTransformer[[]byte, map[string]any, *input.JsonInput, *output.ElasticOutput] {
+	it := input.JsonInputTransformer{}
+	ot := output.ElasticOutputTransformer{}
+	return NewFilterTransformer[[]byte, map[string]any, *input.JsonInput, *output.ElasticOutput](&it, &ot)
+}
+
+func NewJsonToSQLFilterTransformer() *FilterTransformer[[]byte, output.SQLTuple, *input.JsonInput, *output.SQLOutput] {
+	it := input.JsonInputTransformer{}
+	ot := output.SQLOutputTransformer{}
+	return NewFilterTransformer[[]byte, output.SQLTuple, *input.JsonInput, *output.SQLOutput](&it, &ot)
 }

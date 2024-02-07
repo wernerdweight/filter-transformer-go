@@ -40,9 +40,7 @@ func TestBasic(t *testing.T) {
 }
 
 func TestFilterTransformer_TransformJsonToElastic(t1 *testing.T) {
-	it := input.JsonInputTransformer{}
-	ot := output.ElasticOutputTransformer{}
-	ft := NewFilterTransformer[[]byte, map[string]any, *input.JsonInput, *output.ElasticOutput](&it, &ot)
+	ft := NewJsonToElasticFilterTransformer()
 	type testCase struct {
 		name    string
 		t       FilterTransformer[[]byte, map[string]any, *input.JsonInput, *output.ElasticOutput]
@@ -130,9 +128,7 @@ func TestFilterTransformer_TransformJsonToElastic(t1 *testing.T) {
 }
 
 func TestFilterTransformer_TransformJsonToSQL(t1 *testing.T) {
-	it := input.JsonInputTransformer{}
-	ot := output.SQLOutputTransformer{}
-	ft := NewFilterTransformer[[]byte, output.SQLTuple, *input.JsonInput, *output.SQLOutput](&it, &ot)
+	ft := NewJsonToSQLFilterTransformer()
 	type testCase struct {
 		name    string
 		t       FilterTransformer[[]byte, output.SQLTuple, *input.JsonInput, *output.SQLOutput]

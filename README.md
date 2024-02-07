@@ -21,7 +21,7 @@ go get github.com/wernerdweight/filter-transformer-go
 Configuration
 ------------
 
-TODO:
+This package doesn't require any configuration.
 
 Usage
 ------------
