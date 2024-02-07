@@ -1072,12 +1072,12 @@ func Test_transformCondition(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			transformCondition(tt.args.condition, tt.args.positiveConditions, tt.args.negativeConditions)
+			transformConditionElastic(tt.args.condition, tt.args.positiveConditions, tt.args.negativeConditions)
 			if !reflect.DeepEqual(tt.args.positiveConditions, tt.wantPositive) {
-				t.Errorf("transformCondition() positive: got = %v, want %v", tt.args.positiveConditions, tt.wantPositive)
+				t.Errorf("transformConditionElastic() positive: got = %v, want %v", tt.args.positiveConditions, tt.wantPositive)
 			}
 			if !reflect.DeepEqual(tt.args.negativeConditions, tt.wantNegative) {
-				t.Errorf("transformCondition() negative: got = %v, want %v", tt.args.negativeConditions, tt.wantNegative)
+				t.Errorf("transformConditionElastic() negative: got = %v, want %v", tt.args.negativeConditions, tt.wantNegative)
 			}
 		})
 	}

@@ -29,7 +29,7 @@ func (o *ElasticOutput) GetDataString() (string, error) {
 	return string(rawData), nil
 }
 
-func getFieldVariantByValueType(condition contract.FilterCondition) string {
+func getElasticFieldVariantByValueType(condition contract.FilterCondition) string {
 	field := fmt.Sprintf("%s.lowersortable", condition.Field)
 	value := condition.Value
 	slice, isSlice := value.([]interface{})
@@ -44,18 +44,18 @@ func getFieldVariantByValueType(condition contract.FilterCondition) string {
 	return field
 }
 
-var conditionResolvers = map[contract.FilterOperator]func(contract.FilterCondition) map[string]any{
+var conditionResolversElastic = map[contract.FilterOperator]func(contract.FilterCondition) map[string]any{
 	contract.FilterOperatorEqual: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
 			"term": map[string]any{
-				getFieldVariantByValueType(condition): condition.Value,
+				getElasticFieldVariantByValueType(condition): condition.Value,
 			},
 		}
 	},
 	contract.FilterOperatorNotEqual: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
 			"term": map[string]any{
-				getFieldVariantByValueType(condition): condition.Value,
+				getElasticFieldVariantByValueType(condition): condition.Value,
 			},
 		}
 	},
@@ -206,24 +206,24 @@ var conditionResolvers = map[contract.FilterOperator]func(contract.FilterConditi
 	contract.FilterOperatorIn: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
 			"terms": map[string]any{
-				getFieldVariantByValueType(condition): condition.Value,
+				getElasticFieldVariantByValueType(condition): condition.Value,
 			},
 		}
 	},
 	contract.FilterOperatorNotIn: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
 			"terms": map[string]any{
-				getFieldVariantByValueType(condition): condition.Value,
+				getElasticFieldVariantByValueType(condition): condition.Value,
 			},
 		}
 	},
 }
 
-func transformCondition(condition contract.FilterCondition, positiveConditions *[]map[string]any, negativeConditions *[]map[string]any) {
+func transformConditionElastic(condition contract.FilterCondition, positiveConditions *[]map[string]any, negativeConditions *[]map[string]any) {
 	if condition.Field == "" || condition.Operator == "" {
 		return
 	}
-	outputCondition := conditionResolvers[condition.Operator](condition)
+	outputCondition := conditionResolversElastic[condition.Operator](condition)
 	if condition.IsNegative() {
 		*negativeConditions = append(*negativeConditions, outputCondition)
 		return
@@ -231,7 +231,7 @@ func transformCondition(condition contract.FilterCondition, positiveConditions *
 	*positiveConditions = append(*positiveConditions, outputCondition)
 }
 
-func transformConditions(conditions contract.FilterConditions) ([]map[string]any, []map[string]any) {
+func transformConditionsElastic(conditions contract.FilterConditions) ([]map[string]any, []map[string]any) {
 	if conditions.IsEmtpy() {
 		return nil, nil
 	}
@@ -240,19 +240,19 @@ func transformConditions(conditions contract.FilterConditions) ([]map[string]any
 	if conditions.Filters != nil {
 		for _, filter := range conditions.Filters {
 			var condition = make(map[string]any)
-			transformFilters(filter, &condition)
+			transformFiltersElastic(filter, &condition)
 			positiveConditions = append(positiveConditions, condition)
 		}
 	}
 	if conditions.Conditions != nil {
 		for _, condition := range conditions.Conditions {
-			transformCondition(condition, &positiveConditions, &negativeConditions)
+			transformConditionElastic(condition, &positiveConditions, &negativeConditions)
 		}
 	}
 	return positiveConditions, negativeConditions
 }
 
-func transformFilters(filters contract.Filters, target *map[string]any) {
+func transformFiltersElastic(filters contract.Filters, target *map[string]any) {
 	if filters.IsEmpty() {
 		return
 	}
@@ -260,7 +260,7 @@ func transformFilters(filters contract.Filters, target *map[string]any) {
 	if filters.Logic == contract.FilterLogicOr {
 		logic = "should"
 	}
-	positiveConditions, negativeConditions := transformConditions(filters.Conditions)
+	positiveConditions, negativeConditions := transformConditionsElastic(filters.Conditions)
 	var outputFilters = make(map[string]any)
 	if positiveConditions != nil {
 		outputFilters[logic] = positiveConditions
@@ -283,7 +283,7 @@ type ElasticOutputTransformer struct {
 
 func (t *ElasticOutputTransformer) Transform(input contract.Filters) (*ElasticOutput, error) {
 	var transformedData = make(map[string]any)
-	transformFilters(input, &transformedData)
+	transformFiltersElastic(input, &transformedData)
 
 	var output ElasticOutput
 	if len(transformedData) == 0 {
