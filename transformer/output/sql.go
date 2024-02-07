@@ -173,7 +173,7 @@ func transformFiltersSQL(filters contract.Filters, target *string, params *[]any
 	*target = fmt.Sprintf("(%s)", strings.Join(conditions, fmt.Sprintf(" %s ", strings.ToUpper(string(filters.Logic)))))
 }
 
-func (t *SQLOutputTransformer) Transform(input contract.Filters) (*SQLOutput, error) {
+func (t *SQLOutputTransformer) Transform(input contract.Filters) (*SQLOutput, *contract.Error) {
 	var sql string
 	var params []any
 	transformFiltersSQL(input, &sql, &params)
@@ -188,7 +188,7 @@ func (t *SQLOutputTransformer) Transform(input contract.Filters) (*SQLOutput, er
 		Params: params,
 	})
 	if err != nil {
-		return nil, err
+		return nil, contract.NewError(contract.NonWriteableOutputData, err.Error())
 	}
 	return &output, nil
 }

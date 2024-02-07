@@ -19,7 +19,7 @@ func (i *FormDataInput) GetDataJson() ([]byte, error) {
 type FormDataInputTransformer struct {
 }
 
-func (t *FormDataInputTransformer) Transform(input FormDataInput) (contract.Filters, error) {
+func (t *FormDataInputTransformer) Transform(input FormDataInput) (contract.Filters, *contract.Error) {
 	// TODO: implement
 	return contract.Filters{}, nil
 }

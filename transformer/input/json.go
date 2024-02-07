@@ -2,7 +2,6 @@ package input
 
 import (
 	"encoding/json"
-	"errors"
 	"github.com/wernerdweight/filter-transformer-go/transformer/contract"
 )
 
@@ -25,24 +24,22 @@ func (i *JsonInput) GetDataJson() ([]byte, error) {
 type JsonInputTransformer struct {
 }
 
-func (t *JsonInputTransformer) Transform(input *JsonInput) (contract.Filters, error) {
+func (t *JsonInputTransformer) Transform(input *JsonInput) (contract.Filters, *contract.Error) {
 	var filters contract.Filters
 	rawData, err := input.GetData()
 	if rawData == nil {
 		return filters, nil
 	}
 	if err != nil {
-		// TODO: custom error - unreadable data
-		return filters, err
+		return filters, contract.NewError(contract.UnreadableInputData, err.Error())
 	}
 	err = json.Unmarshal(rawData, &filters)
 	if err != nil {
-		// TODO: custom error - structure invalid
-		return filters, err
+		return filters, contract.NewError(contract.InvalidInputDataStructure, err.Error())
 	}
 	if len(rawData) > 0 && filters.IsEmpty() {
 		// not empty, but not a valid filter conditions
-		return filters, errors.New("invalid filters structure")
+		return filters, contract.NewError(contract.InvalidFiltersStructure, rawData)
 	}
 	return filters, nil
 }

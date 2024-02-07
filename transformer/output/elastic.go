@@ -281,7 +281,7 @@ func transformFiltersElastic(filters contract.Filters, target *map[string]any) {
 type ElasticOutputTransformer struct {
 }
 
-func (t *ElasticOutputTransformer) Transform(input contract.Filters) (*ElasticOutput, error) {
+func (t *ElasticOutputTransformer) Transform(input contract.Filters) (*ElasticOutput, *contract.Error) {
 	var transformedData = make(map[string]any)
 	transformFiltersElastic(input, &transformedData)
 
@@ -292,7 +292,7 @@ func (t *ElasticOutputTransformer) Transform(input contract.Filters) (*ElasticOu
 
 	err := output.SetData(transformedData)
 	if err != nil {
-		return nil, err
+		return nil, contract.NewError(contract.NonWriteableOutputData, err.Error())
 	}
 	return &output, nil
 }

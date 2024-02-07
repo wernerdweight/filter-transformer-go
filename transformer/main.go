@@ -7,7 +7,7 @@ type FilterTransformer[IDT any, ODT any, IT contract.InputOutputInterface[IDT], 
 	outputTransformer contract.OutputTransformerInterface[ODT, OT]
 }
 
-func (t *FilterTransformer[IDT, ODT, IT, OT]) Transform(input IT) (o OT, err error) {
+func (t *FilterTransformer[IDT, ODT, IT, OT]) Transform(input IT) (o OT, err *contract.Error) {
 	filter, err := t.inputTransformer.Transform(input)
 	if err != nil {
 		return

@@ -119,9 +119,9 @@ func NewInputOutputType[T any, IOT InputOutputInterface[T]](data T, i IOT) (IOT,
 type InputTransformerInterface[T any, IOT InputOutputInterface[T]] interface {
 	// TODO: add optional validators for fields (filters.conditions.conditions[i].field)
 	// TODO: also for values (filters.conditions.conditions[i].value)
-	Transform(input IOT) (Filters, error)
+	Transform(input IOT) (Filters, *Error)
 }
 
 type OutputTransformerInterface[T any, IOT InputOutputInterface[T]] interface {
-	Transform(input Filters) (IOT, error)
+	Transform(input Filters) (IOT, *Error)
 }
