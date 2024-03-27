@@ -109,6 +109,38 @@ var testOutputElastic4, _ = contract.NewInputOutputType(map[string]any{
 		},
 	},
 }, &ElasticOutput{})
+var testOutputElastic5, _ = contract.NewInputOutputType(map[string]any{
+	"bool": map[string]any{
+		"must": []map[string]any{
+			{
+				"bool": map[string]any{
+					"should": []map[string]any{
+						{
+							"range": map[string]any{
+								"duration": map[string]any{"gte": 120.0},
+							},
+						}, {
+							"bool": map[string]any{
+								"must_not": []map[string]any{
+									{
+										"wildcard": map[string]any{"track_name.lowersortable": "*cloud*"},
+									}, {
+										"term": map[string]any{"release_year": 2022.0},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			{
+				"range": map[string]any{
+					"release_year": map[string]any{"gte": 2022.0},
+				},
+			},
+		},
+	},
+}, &ElasticOutput{})
 
 func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 	type args struct {
@@ -260,7 +292,51 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 						},
 					},
 				},
-			}, testOutputElastic4,
+			},
+			testOutputElastic4,
+			false,
+		},
+		{
+			"with complex nested data",
+			args{
+				input: contract.Filters{
+					Logic: contract.FilterLogicAnd,
+					Conditions: contract.FilterConditions{
+						Conditions: []contract.FilterCondition{
+							{
+								Field:    "release_year",
+								Operator: contract.FilterOperatorGreaterThanOrEqual,
+								Value:    2022.0,
+							},
+						},
+						Filters: []contract.Filters{
+							{
+								Logic: contract.FilterLogicOr,
+								Conditions: contract.FilterConditions{
+									Conditions: []contract.FilterCondition{
+										{
+											Field:    "duration",
+											Operator: contract.FilterOperatorGreaterThanOrEqual,
+											Value:    120.0,
+										},
+										{
+											Field:    "track_name",
+											Operator: contract.FilterOperatorNotContains,
+											Value:    "cloud",
+										},
+										{
+											Field:    "release_year",
+											Operator: contract.FilterOperatorNotEqual,
+											Value:    2022.0,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			testOutputElastic5,
 			false,
 		},
 	}

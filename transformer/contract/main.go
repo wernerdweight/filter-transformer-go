@@ -62,16 +62,36 @@ func (fc *FilterConditions) IsEmtpy() bool {
 func (fc *FilterConditions) UnmarshalJSON(data []byte) error {
 	var conditions []FilterCondition
 	err := json.Unmarshal(data, &conditions)
-	if err == nil && len(conditions) > 0 && conditions[0].Field != "" {
-		fc.Conditions = conditions
-		return nil
+	if err == nil && len(conditions) > 0 {
+		var filteredConditions []FilterCondition
+		for _, condition := range conditions {
+			if condition.Field != "" {
+				filteredConditions = append(filteredConditions, condition)
+			}
+		}
+		if len(filteredConditions) > 0 {
+			fc.Conditions = filteredConditions
+		}
 	}
+
 	var filters []Filters
 	err = json.Unmarshal(data, &filters)
-	if err == nil && len(filters) > 0 && !filters[0].Conditions.IsEmtpy() {
-		fc.Filters = filters
+	if err == nil && len(filters) > 0 {
+		var filteredFilters []Filters
+		for _, filter := range filters {
+			if !filter.Conditions.IsEmtpy() {
+				filteredFilters = append(filteredFilters, filter)
+			}
+		}
+		if len(filteredFilters) > 0 {
+			fc.Filters = filteredFilters
+		}
+	}
+
+	if len(fc.Conditions) > 0 || len(fc.Filters) > 0 {
 		return nil
 	}
+
 	if len(data) > 0 {
 		// not empty, but not a valid filter conditions
 		return errors.New("invalid filter conditions")

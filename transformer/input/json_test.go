@@ -11,6 +11,7 @@ var testInputJson1, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "co
 var testInputJson2, _ = contract.NewInputOutputType([]byte(`{"logic": "or", "conditions": [{"field": "key", "operator": "not-null", "value": null}]}`), &JsonInput{})
 var testInputJson3, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "gte", "value": 123}]}`), &JsonInput{})
 var testInputJson4, _ = contract.NewInputOutputType([]byte(`{"logic": "or", "conditions": [{"logic": "and", "conditions": [{"field": "key", "operator": "eq", "value": "val"}, {"field": "key2", "operator": "not-empty", "value": null}]}, {"logic": "and", "conditions": [{"field": "key3", "operator": "contains", "value": "val3"}, {"field": "key4", "operator": "gt", "value": 123}]}]}`), &JsonInput{})
+var testInputJson5, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "release_year", "operator": "gte", "value": 2022}, {"logic": "or", "conditions": [{"field": "duration", "operator": "gte", "value": 120}, {"field": "track_name", "operator": "not-contains", "value": "cloud"}, {"field": "release_year", "operator": "neq", "value": 2022}]}]}`), &JsonInput{})
 var invalidInputJson0, _ = contract.NewInputOutputType([]byte(`{"field": "key", "operator": "eq", "value": "val"}`), &JsonInput{})
 var invalidInputJson1, _ = contract.NewInputOutputType([]byte(`"JSON string"`), &JsonInput{})
 var invalidInputJson2, _ = contract.NewInputOutputType([]byte(`not JSON at all`), &JsonInput{})
@@ -160,6 +161,49 @@ func TestJsonInputTransformer_Transform(t1 *testing.T) {
 										Field:    "key4",
 										Operator: contract.FilterOperatorGreaterThan,
 										Value:    123.0,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "input with complex nested data",
+			args: args{
+				input: testInputJson5,
+			},
+			want: contract.Filters{
+				Logic: contract.FilterLogicAnd,
+				Conditions: contract.FilterConditions{
+					Conditions: []contract.FilterCondition{
+						{
+							Field:    "release_year",
+							Operator: contract.FilterOperatorGreaterThanOrEqual,
+							Value:    2022.0,
+						},
+					},
+					Filters: []contract.Filters{
+						{
+							Logic: contract.FilterLogicOr,
+							Conditions: contract.FilterConditions{
+								Conditions: []contract.FilterCondition{
+									{
+										Field:    "duration",
+										Operator: contract.FilterOperatorGreaterThanOrEqual,
+										Value:    120.0,
+									},
+									{
+										Field:    "track_name",
+										Operator: contract.FilterOperatorNotContains,
+										Value:    "cloud",
+									},
+									{
+										Field:    "release_year",
+										Operator: contract.FilterOperatorNotEqual,
+										Value:    2022.0,
 									},
 								},
 							},
