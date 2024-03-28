@@ -3,6 +3,7 @@ package contract
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"slices"
 )
 
@@ -32,7 +33,40 @@ const (
 	FilterOperatorIsNotEmpty              FilterOperator = "not-empty"
 	FilterOperatorIn                      FilterOperator = "in"
 	FilterOperatorNotIn                   FilterOperator = "not-in"
+
+	ValidationErrorEmpty           = "empty value"
+	ValidationErrorInvalidOperator = "invalid operator"
 )
+
+var supportedOperators = []FilterOperator{
+	FilterOperatorEqual,
+	FilterOperatorNotEqual,
+	FilterOperatorGreaterThan,
+	FilterOperatorGreaterThanOrEqual,
+	FilterOperatorGreaterThanOrEqualOrNil,
+	FilterOperatorLowerThan,
+	FilterOperatorLowerThanOrEqual,
+	FilterOperatorLowerThanOrEqualOrNil,
+	FilterOperatorBegins,
+	FilterOperatorContains,
+	FilterOperatorNotContains,
+	FilterOperatorEnds,
+	FilterOperatorIsNil,
+	FilterOperatorIsNotNil,
+	FilterOperatorIsEmpty,
+	FilterOperatorIsNotEmpty,
+	FilterOperatorIn,
+	FilterOperatorNotIn,
+}
+
+type ValidationError struct {
+	Path    string
+	Error   string
+	Field   string
+	Payload any
+}
+
+type ValidationFunc func(filterCondition FilterCondition, path string, validationErrors *[]ValidationError)
 
 type FilterCondition struct {
 	Field    string
@@ -40,7 +74,7 @@ type FilterCondition struct {
 	Value    interface{}
 }
 
-func (c FilterCondition) IsNegative() bool {
+func (c *FilterCondition) IsNegative() bool {
 	return slices.Contains([]FilterOperator{
 		FilterOperatorNotEqual,
 		FilterOperatorNotContains,
@@ -50,12 +84,40 @@ func (c FilterCondition) IsNegative() bool {
 	}, c.Operator)
 }
 
+func (c *FilterCondition) validate(validationErrors *[]ValidationError, path string, validationFunc *ValidationFunc) {
+	if c.Field == "" {
+		*validationErrors = append(*validationErrors, ValidationError{
+			Path:  fmt.Sprintf("%s.field", path),
+			Error: ValidationErrorEmpty,
+			Field: "field",
+		})
+	}
+	if c.Operator == "" {
+		*validationErrors = append(*validationErrors, ValidationError{
+			Path:  fmt.Sprintf("%s.operator", path),
+			Error: ValidationErrorEmpty,
+			Field: "operator",
+		})
+	}
+	if c.Operator != "" && !slices.Contains(supportedOperators, c.Operator) {
+		*validationErrors = append(*validationErrors, ValidationError{
+			Path:    fmt.Sprintf("%s.operator", path),
+			Error:   ValidationErrorInvalidOperator,
+			Field:   "operator",
+			Payload: string(c.Operator),
+		})
+	}
+	if validationFunc != nil {
+		(*validationFunc)(*c, path, validationErrors)
+	}
+}
+
 type FilterConditions struct {
 	Conditions []FilterCondition
 	Filters    []Filters
 }
 
-func (fc *FilterConditions) IsEmtpy() bool {
+func (fc *FilterConditions) IsEmpty() bool {
 	return len(fc.Conditions) == 0 && len(fc.Filters) == 0
 }
 
@@ -79,7 +141,7 @@ func (fc *FilterConditions) UnmarshalJSON(data []byte) error {
 	if err == nil && len(filters) > 0 {
 		var filteredFilters []Filters
 		for _, filter := range filters {
-			if !filter.Conditions.IsEmtpy() {
+			if !filter.Conditions.IsEmpty() {
 				filteredFilters = append(filteredFilters, filter)
 			}
 		}
@@ -105,7 +167,44 @@ type Filters struct {
 }
 
 func (f *Filters) IsEmpty() bool {
-	return f.Logic == "" && f.Conditions.IsEmtpy()
+	return f.Logic == "" && f.Conditions.IsEmpty()
+}
+
+func (f *Filters) validate(validationErrors *[]ValidationError, path string, validationFunc *ValidationFunc) {
+	if f.IsEmpty() {
+		*validationErrors = append(*validationErrors, ValidationError{
+			Path:  path,
+			Error: ValidationErrorEmpty,
+		})
+		return
+	}
+	if f.Logic != "" && f.Logic != FilterLogicAnd && f.Logic != FilterLogicOr {
+		*validationErrors = append(*validationErrors, ValidationError{
+			Path:    fmt.Sprintf("%s.logic", path),
+			Error:   ValidationErrorInvalidOperator,
+			Field:   "logic",
+			Payload: string(f.Logic),
+		})
+	}
+	if f.Conditions.IsEmpty() {
+		*validationErrors = append(*validationErrors, ValidationError{
+			Path:  fmt.Sprintf("%s.conditions", path),
+			Error: ValidationErrorEmpty,
+			Field: "conditions",
+		})
+	}
+	for index, condition := range f.Conditions.Conditions {
+		condition.validate(validationErrors, fmt.Sprintf("%s.conditions.%d", path, index), validationFunc)
+	}
+	for index, filter := range f.Conditions.Filters {
+		filter.validate(validationErrors, fmt.Sprintf("%s.conditions.%d", path, index), validationFunc)
+	}
+}
+
+func (f *Filters) Validate(validationFunc *ValidationFunc) []ValidationError {
+	var validationErrors []ValidationError
+	f.validate(&validationErrors, "root", validationFunc)
+	return validationErrors
 }
 
 type InputOutputInterface[T any] interface {

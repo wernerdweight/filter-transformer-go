@@ -139,7 +139,7 @@ func transformConditionSQL(condition contract.FilterCondition, outputConditions 
 }
 
 func transformConditionsSQL(conditions contract.FilterConditions, params *[]any) []string {
-	if conditions.IsEmtpy() {
+	if conditions.IsEmpty() {
 		return nil
 	}
 	var outputConditions []string

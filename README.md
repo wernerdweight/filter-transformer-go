@@ -151,6 +151,84 @@ func main() {
 
 For SQL, the output is a struct with a query and parameters. The query is a string with placeholders for parameters (e.g. `$1`, `$2`, ...). The parameters are an array of values that are used to replace the placeholders in the query.
 
+### Validation
+
+The transformer includes basic validation for the input data structure. If the input data structure is invalid, the transformer will return an error. The validation checks the following:
+
+* **Basic structure** - the input data is syntactically correct and contains `filter` key that contains a supported `logic` (or can be empty, which defaults to `"and"`) and a non-empty `conditions` array.
+* **Field structure** - each condition in the `conditions` array is either a nested filter or contains a non-empty `field` and `operator` keys.
+* **Operators** - each condition in the `conditions` array contains a supported `operator`.
+
+#### Custom Validation
+
+You can add custom validation rules by providing the `contract.ValidationFunc` function when creating the transformer.
+
+```go
+import (
+  "github.com/wernerdweight/filter-transformer-go"
+)
+
+func main() {
+  ft := NewJsonToElasticFilterTransformer().WithValidationFunc(
+    func (filterCondition contract.FilterCondition, path string, validationErrors *[]contract.ValidationError) {
+      // example: narrow the supported fields
+      if filterCondition.Field != "key" {
+        *validationErrors = append(*validationErrors, contract.ValidationError{
+          Path:    fmt.Sprintf("%s.field", path),
+          Error:   "unsupported field",
+          Field:   "field",
+          Payload: filterCondition.Field,
+        })
+      }
+      // example: only allow certain operators with certain fields
+      if filterCondition.Field == "key" && filterCondition.Operator != "eq" {
+        *validationErrors = append(*validationErrors, contract.ValidationError{
+          Path:  fmt.Sprintf("%s.operator", path),
+          Error: "unsupported field operator",
+          Field: "operator",
+          Payload: map[string]string{
+          "operator": string(filterCondition.Operator),
+          "field":    filterCondition.Field,
+          },
+        })
+      }
+      // example: only allow certain value types with certain fields
+      if filterCondition.Field == "key" {
+        value, ok := filterCondition.Value.(float64)
+        if !ok {
+          *validationErrors = append(*validationErrors, contract.ValidationError{
+            Path:  fmt.Sprintf("%s.value", path),
+            Error: "unsupported field value type",
+            Field: "value",
+            Payload: map[string]string{
+            "value":    fmt.Sprintf("%v", filterCondition.Value),
+            "field":    filterCondition.Field,
+            "requires": "float64",
+            },
+          })
+          return
+        }
+        if value < 0 {
+          *validationErrors = append(*validationErrors, contract.ValidationError{
+            Path:  fmt.Sprintf("%s.value", path),
+            Error: "unsupported field value",
+            Field: "value",
+            Payload: map[string]string{
+              "value":  fmt.Sprintf("%v", filterCondition.Value),
+              "field":  filterCondition.Field,
+              "reason": "negative",
+            },
+          })
+        }
+      }
+    },
+  )
+
+  output, err := ft.Transform(/*...*/)
+  /*...*/
+}
+```
+
 ### Errors
 
 The following errors can occur (you can check for specific code since different errors have different severity):
@@ -162,6 +240,25 @@ var ErrorCodes = map[ErrorCode]string{
     InvalidInputDataStructure: "invalid input data structure",
     InvalidFiltersStructure:   "invalid filters structure",
     NonWriteableOutputData:    "can't write output data",
+}
+```
+
+In case of validation errors, the error will contain a list of validation errors within the `Payload` field. Each validation error has the following structure:
+
+```go
+type ValidationError struct {
+    Path    string
+    Error   string
+    Field   string
+    Payload any
+}
+
+// example value:
+{
+    Path:    "filter.conditions.0.field",
+    Error:   "unsupported field",
+    Field:   "field",
+    Payload: "fieldName",
 }
 ```
 
@@ -182,9 +279,9 @@ type OutputTransformerInterface[T any, IOT InputOutputInterface[T]] interface {
 ### Known issues, limitations and missing features
 
 * **FormData input** - not yet supported.
-* **Validation** - input validation is not yet supported - therefore, the produced output might not be usable and you should handle such cases in your application. This package doesn't have any information about your fields, their types and permissions. This will be supported in the future:
-  * **Field validation** - input fields validation is not yet supported - once done, you'll be able to validate the fields (e.g. whether they exist, can be filtered, can be used with a specific operator, etc.) based on your own validation logic.
-  * **Value validation** - input validation is not yet supported - once done, you'll be able to validate the input values (condition values) before transforming based on your own validation logic.
+* **Validation** - basic input validation is present, this package doesn't have any information about your fields, their types and permissions. The produced output might, thus, not be usable and you should handle such cases in your application.
+  * **Field validation** - you can provide logic to validate the fields (e.g. whether they exist, can be filtered, can be used with a specific operator, etc.).
+  * **Value validation** - you can provide logic to validate the input values (condition values) before transforming based on your own validation logic.
 * **SQL output** - the GetDataString method is not not safe for use in production, it's intended for debugging purposes only (there's a log line printed in the method to make this explicit).
 
 License

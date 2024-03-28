@@ -232,7 +232,7 @@ func transformConditionElastic(condition contract.FilterCondition, positiveCondi
 }
 
 func transformConditionsElastic(conditions contract.FilterConditions) ([]map[string]any, []map[string]any) {
-	if conditions.IsEmtpy() {
+	if conditions.IsEmpty() {
 		return nil, nil
 	}
 	var positiveConditions []map[string]any

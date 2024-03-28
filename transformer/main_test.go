@@ -1,6 +1,7 @@
 package transformer
 
 import (
+	"fmt"
 	"github.com/wernerdweight/filter-transformer-go/transformer/contract"
 	"github.com/wernerdweight/filter-transformer-go/transformer/input"
 	"github.com/wernerdweight/filter-transformer-go/transformer/output"
@@ -18,6 +19,15 @@ var testInputJson5, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "co
 var invalidInputJson0, _ = contract.NewInputOutputType([]byte(`{"field": "key", "operator": "eq", "value": "val"}`), &input.JsonInput{})
 var invalidInputJson1, _ = contract.NewInputOutputType([]byte(`"JSON string"`), &input.JsonInput{})
 var invalidInputJson2, _ = contract.NewInputOutputType([]byte(`not JSON at all`), &input.JsonInput{})
+var invalidInputJson3, _ = contract.NewInputOutputType([]byte(`{"logic": "test", "conditions": [{"field": "test", "operator": "ss", "value": "test"}]}`), &input.JsonInput{})
+var invalidInputJson4, _ = contract.NewInputOutputType([]byte(`{"logic": "and","conditions": [{"field": "test", "operator": "ss", "value": "test"}]}`), &input.JsonInput{})
+var invalidInputJson5, _ = contract.NewInputOutputType([]byte(`{"logic": "or","conditions": [{"field": "test", "oooooperator": "eq", "value": "test"}]}`), &input.JsonInput{})
+
+var customInvalidInputJson0, _ = contract.NewInputOutputType([]byte(`{"conditions": [{"field": "test", "operator": "eq", "value": 1}]}`), &input.JsonInput{})
+var customInvalidInputJson1, _ = contract.NewInputOutputType([]byte(`{"conditions": [{"field": "key", "operator": "neq", "value": 1}]}`), &input.JsonInput{})
+var customInvalidInputJson2, _ = contract.NewInputOutputType([]byte(`{"conditions": [{"field": "key", "operator": "eq", "value": "val"}]}`), &input.JsonInput{})
+var customInvalidInputJson3, _ = contract.NewInputOutputType([]byte(`{"conditions": [{"field": "key", "operator": "eq", "value": -1}]}`), &input.JsonInput{})
+var customInvalidInputJson4, _ = contract.NewInputOutputType([]byte(`{"conditions": [{"field": "key", "operator": "eq", "value": 1}]}`), &input.JsonInput{})
 
 var testOutputElastic0, _ = contract.NewInputOutputType(map[string]any{"bool": map[string]any{"must": []map[string]any{{"term": map[string]any{"key.lowersortable": "val"}}}}}, &output.ElasticOutput{})
 var testOutputElastic1, _ = contract.NewInputOutputType(map[string]any{"bool": map[string]any{"must": []map[string]any{{"bool": map[string]any{"should": []map[string]any{{"term": map[string]any{"key.lowersortable": "val"}}, {"bool": map[string]any{"must_not": []map[string]any{{"term": map[string]any{"key2.lowersortable": "val2"}}}}}}}}}}}, &output.ElasticOutput{})
@@ -35,7 +45,7 @@ var testOutputSQL4, _ = contract.NewInputOutputType(output.SQLTuple{Query: "((ke
 func TestBasic(t *testing.T) {
 	it := input.JsonInputTransformer{}
 	ot := output.ElasticOutputTransformer{}
-	ft := NewFilterTransformer[[]byte, map[string]any, *input.JsonInput, *output.ElasticOutput](&it, &ot)
+	ft := NewFilterTransformer[[]byte, map[string]any, *input.JsonInput, *output.ElasticOutput](&it, &ot, nil)
 	jsonInput, _ := contract.NewInputOutputType[[]byte, *input.JsonInput]([]byte("test"), &input.JsonInput{})
 	transformedOutput, err := ft.Transform(jsonInput)
 	log.Printf("output: %+v, err: %+v", transformedOutput, err)
@@ -55,8 +65,8 @@ func TestFilterTransformer_TransformJsonToElastic(t1 *testing.T) {
 			name:    "empty",
 			t:       *ft,
 			input:   input.JsonInput{},
-			want:    &output.ElasticOutput{},
-			wantErr: false,
+			want:    nil,
+			wantErr: true,
 		},
 		{
 			name:    "with data",
@@ -150,8 +160,8 @@ func TestFilterTransformer_TransformJsonToSQL(t1 *testing.T) {
 			name:    "empty",
 			t:       *ft,
 			input:   input.JsonInput{},
-			want:    &output.SQLOutput{},
-			wantErr: false,
+			want:    nil,
+			wantErr: true,
 		},
 		{
 			name:    "with data",
@@ -219,6 +229,231 @@ func TestFilterTransformer_TransformJsonToSQL(t1 *testing.T) {
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t1.Errorf("Transform() got = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestFilterTransformer_Validate(t *testing.T) {
+	ft := NewJsonToElasticFilterTransformer()
+	type testCase struct {
+		name  string
+		t     FilterTransformer[[]byte, map[string]any, *input.JsonInput, *output.ElasticOutput]
+		input input.JsonInput
+		want  *[]contract.ValidationError
+	}
+	tests := []testCase{
+		{
+			name:  "empty",
+			t:     *ft,
+			input: input.JsonInput{},
+			want: &[]contract.ValidationError{
+				{
+					Path:  "root",
+					Error: contract.ValidationErrorEmpty,
+				},
+			},
+		},
+		{
+			name:  "invalid input - missing logic",
+			t:     *ft,
+			input: *invalidInputJson3,
+			want: &[]contract.ValidationError{
+				{
+					Path:    "root.logic",
+					Error:   contract.ValidationErrorInvalidOperator,
+					Field:   "logic",
+					Payload: "test",
+				},
+				{
+					Path:    "root.conditions.0.operator",
+					Error:   contract.ValidationErrorInvalidOperator,
+					Field:   "operator",
+					Payload: "ss",
+				},
+			},
+		},
+		{
+			name:  "invalid input - invalid operator",
+			t:     *ft,
+			input: *invalidInputJson4,
+			want: &[]contract.ValidationError{
+				{
+					Path:    "root.conditions.0.operator",
+					Error:   contract.ValidationErrorInvalidOperator,
+					Field:   "operator",
+					Payload: "ss",
+				},
+			},
+		},
+		{
+			name:  "invalid input - invalid operator key",
+			t:     *ft,
+			input: *invalidInputJson5,
+			want: &[]contract.ValidationError{
+				{
+					Path:  "root.conditions.0.operator",
+					Error: contract.ValidationErrorEmpty,
+					Field: "operator",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, got := ft.Transform(&tt.input)
+			if (got == nil && tt.want != nil) || (got != nil && tt.want == nil) {
+				t.Errorf("Transform().Error got = %v, want %v", got, tt.want)
+				return
+			}
+			if got != nil && !reflect.DeepEqual(got.Payload, *tt.want) {
+				t.Errorf("Transform().Error got = %v, want %v", got.Payload, *tt.want)
+			}
+		})
+	}
+}
+
+func TestFilterTransformer_CustomValidation(t *testing.T) {
+	ft := NewJsonToElasticFilterTransformer().WithValidationFunc(
+		func(filterCondition contract.FilterCondition, path string, validationErrors *[]contract.ValidationError) {
+			// example: narrow the supported fields
+			if filterCondition.Field != "key" {
+				*validationErrors = append(*validationErrors, contract.ValidationError{
+					Path:    fmt.Sprintf("%s.field", path),
+					Error:   "unsupported field",
+					Field:   "field",
+					Payload: filterCondition.Field,
+				})
+			}
+			// example: only allow certain operators with certain fields
+			if filterCondition.Field == "key" && filterCondition.Operator != "eq" {
+				*validationErrors = append(*validationErrors, contract.ValidationError{
+					Path:  fmt.Sprintf("%s.operator", path),
+					Error: "unsupported field operator",
+					Field: "operator",
+					Payload: map[string]string{
+						"operator": string(filterCondition.Operator),
+						"field":    filterCondition.Field,
+					},
+				})
+			}
+			// example: only allow certain value types with certain fields
+			if filterCondition.Field == "key" {
+				value, ok := filterCondition.Value.(float64)
+				if !ok {
+					*validationErrors = append(*validationErrors, contract.ValidationError{
+						Path:  fmt.Sprintf("%s.value", path),
+						Error: "unsupported field value type",
+						Field: "value",
+						Payload: map[string]string{
+							"value":    fmt.Sprintf("%v", filterCondition.Value),
+							"field":    filterCondition.Field,
+							"requires": "float64",
+						},
+					})
+					return
+				}
+				if value < 0 {
+					*validationErrors = append(*validationErrors, contract.ValidationError{
+						Path:  fmt.Sprintf("%s.value", path),
+						Error: "unsupported field value",
+						Field: "value",
+						Payload: map[string]string{
+							"value":  fmt.Sprintf("%v", filterCondition.Value),
+							"field":  filterCondition.Field,
+							"reason": "negative",
+						},
+					})
+				}
+			}
+		},
+	)
+	type testCase struct {
+		name  string
+		t     FilterTransformer[[]byte, map[string]any, *input.JsonInput, *output.ElasticOutput]
+		input input.JsonInput
+		want  *[]contract.ValidationError
+	}
+	tests := []testCase{
+		{
+			name:  "invalid input - unsupported field",
+			t:     *ft,
+			input: *customInvalidInputJson0,
+			want: &[]contract.ValidationError{
+				{
+					Path:    "root.conditions.0.field",
+					Error:   "unsupported field",
+					Field:   "field",
+					Payload: "test",
+				},
+			},
+		},
+		{
+			name:  "invalid input - unsupported field operator",
+			t:     *ft,
+			input: *customInvalidInputJson1,
+			want: &[]contract.ValidationError{
+				{
+					Path:  "root.conditions.0.operator",
+					Error: "unsupported field operator",
+					Field: "operator",
+					Payload: map[string]string{
+						"operator": "neq",
+						"field":    "key",
+					},
+				},
+			},
+		},
+		{
+			name:  "invalid input - unsupported field value type",
+			t:     *ft,
+			input: *customInvalidInputJson2,
+			want: &[]contract.ValidationError{
+				{
+					Path:  "root.conditions.0.value",
+					Error: "unsupported field value type",
+					Field: "value",
+					Payload: map[string]string{
+						"value":    "val",
+						"field":    "key",
+						"requires": "float64",
+					},
+				},
+			},
+		},
+		{
+			name:  "invalid input - unsupported field value",
+			t:     *ft,
+			input: *customInvalidInputJson3,
+			want: &[]contract.ValidationError{
+				{
+					Path:  "root.conditions.0.value",
+					Error: "unsupported field value",
+					Field: "value",
+					Payload: map[string]string{
+						"value":  "-1",
+						"field":  "key",
+						"reason": "negative",
+					},
+				},
+			},
+		},
+		{
+			name:  "valid input",
+			t:     *ft,
+			input: *customInvalidInputJson4,
+			want:  nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, got := ft.Transform(&tt.input)
+			if (got == nil && tt.want != nil) || (got != nil && tt.want == nil) {
+				t.Errorf("Transform().Error got = %v, want %v", got, tt.want)
+				return
+			}
+			if got != nil && !reflect.DeepEqual(got.Payload, *tt.want) {
+				t.Errorf("Transform().Error got = %v, want %v", got.Payload, *tt.want)
 			}
 		})
 	}
