@@ -141,6 +141,17 @@ var testOutputElastic5, _ = contract.NewInputOutputType(map[string]any{
 		},
 	},
 }, &ElasticOutput{})
+var testOutputElastic6, _ = contract.NewInputOutputType(map[string]any{
+	"bool": map[string]any{
+		"must": []map[string]any{
+			{
+				"terms": map[string]any{
+					"key.lowersortable": []string{"val", "val2"},
+				},
+			},
+		},
+	},
+}, &ElasticOutput{})
 
 func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 	type args struct {
@@ -337,6 +348,25 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 				},
 			},
 			testOutputElastic5,
+			false,
+		},
+		{
+			"with in operator and array of values",
+			args{
+				input: contract.Filters{
+					Logic: contract.FilterLogicAnd,
+					Conditions: contract.FilterConditions{
+						Conditions: []contract.FilterCondition{
+							{
+								Field:    "key",
+								Operator: contract.FilterOperatorIn,
+								Value:    []string{"val", "val2"},
+							},
+						},
+					},
+				},
+			},
+			testOutputElastic6,
 			false,
 		},
 	}

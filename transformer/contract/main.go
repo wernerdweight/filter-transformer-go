@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 )
 
 type FilterLogic string
@@ -84,6 +85,29 @@ func (c *FilterCondition) IsNegative() bool {
 	}, c.Operator)
 }
 
+func (c *FilterCondition) UnmarshalJSON(data []byte) error {
+	var condition struct {
+		Field    string
+		Operator FilterOperator
+		Value    interface{}
+	}
+	err := json.Unmarshal(data, &condition)
+	if err != nil {
+		return err
+	}
+	c.Field = condition.Field
+	c.Operator = condition.Operator
+	c.Value = condition.Value
+	if value, ok := c.Value.(string); ok && c.expectsArray() && c.Value != nil {
+		array := strings.Split(value, ",")
+		for index, item := range array {
+			array[index] = strings.TrimSpace(item)
+		}
+		c.Value = array
+	}
+	return nil
+}
+
 func (c *FilterCondition) validate(validationErrors *[]ValidationError, path string, validationFunc *ValidationFunc) {
 	if c.Field == "" {
 		*validationErrors = append(*validationErrors, ValidationError{
@@ -110,6 +134,13 @@ func (c *FilterCondition) validate(validationErrors *[]ValidationError, path str
 	if validationFunc != nil {
 		(*validationFunc)(*c, path, validationErrors)
 	}
+}
+
+func (c *FilterCondition) expectsArray() bool {
+	return slices.Contains([]FilterOperator{
+		FilterOperatorIn,
+		FilterOperatorNotIn,
+	}, c.Operator)
 }
 
 type FilterConditions struct {
@@ -236,8 +267,6 @@ func NewInputOutputType[T any, IOT InputOutputInterface[T]](data T, i IOT) (IOT,
 }
 
 type InputTransformerInterface[T any, IOT InputOutputInterface[T]] interface {
-	// TODO: add optional validators for fields (filters.conditions.conditions[i].field)
-	// TODO: also for values (filters.conditions.conditions[i].value)
 	Transform(input IOT) (Filters, *Error)
 }
 

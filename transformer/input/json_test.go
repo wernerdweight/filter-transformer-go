@@ -12,6 +12,10 @@ var testInputJson2, _ = contract.NewInputOutputType([]byte(`{"logic": "or", "con
 var testInputJson3, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "gte", "value": 123}]}`), &JsonInput{})
 var testInputJson4, _ = contract.NewInputOutputType([]byte(`{"logic": "or", "conditions": [{"logic": "and", "conditions": [{"field": "key", "operator": "eq", "value": "val"}, {"field": "key2", "operator": "not-empty", "value": null}]}, {"logic": "and", "conditions": [{"field": "key3", "operator": "contains", "value": "val3"}, {"field": "key4", "operator": "gt", "value": 123}]}]}`), &JsonInput{})
 var testInputJson5, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "release_year", "operator": "gte", "value": 2022}, {"logic": "or", "conditions": [{"field": "duration", "operator": "gte", "value": 120}, {"field": "track_name", "operator": "not-contains", "value": "cloud"}, {"field": "release_year", "operator": "neq", "value": 2022}]}]}`), &JsonInput{})
+var testInputJson6, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "in", "value": "val"}]}`), &JsonInput{})
+var testInputJson7, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "in", "value": "val,val2"}]}`), &JsonInput{})
+var testInputJson8, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "in", "value": "val, val2"}]}`), &JsonInput{})
+var testInputJson9, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "in", "value": ["val", "val2"]}]}`), &JsonInput{})
 var invalidInputJson0, _ = contract.NewInputOutputType([]byte(`{"field": "key", "operator": "eq", "value": "val"}`), &JsonInput{})
 var invalidInputJson1, _ = contract.NewInputOutputType([]byte(`"JSON string"`), &JsonInput{})
 var invalidInputJson2, _ = contract.NewInputOutputType([]byte(`not JSON at all`), &JsonInput{})
@@ -214,6 +218,81 @@ func TestJsonInputTransformer_Transform(t1 *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "input with in operator - single value",
+			args: args{
+				input: testInputJson6,
+			},
+			want: contract.Filters{
+				Logic: contract.FilterLogicAnd,
+				Conditions: contract.FilterConditions{
+					Conditions: []contract.FilterCondition{
+						{
+							Field:    "key",
+							Operator: contract.FilterOperatorIn,
+							Value:    []string{"val"},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "input with in operator - multiple string values",
+			args: args{
+				input: testInputJson7,
+			},
+			want: contract.Filters{
+				Logic: contract.FilterLogicAnd,
+				Conditions: contract.FilterConditions{
+					Conditions: []contract.FilterCondition{
+						{
+							Field:    "key",
+							Operator: contract.FilterOperatorIn,
+							Value:    []string{"val", "val2"},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "input with in operator - multiple string values with space",
+			args: args{
+				input: testInputJson8,
+			},
+			want: contract.Filters{
+				Logic: contract.FilterLogicAnd,
+				Conditions: contract.FilterConditions{
+					Conditions: []contract.FilterCondition{
+						{
+							Field:    "key",
+							Operator: contract.FilterOperatorIn,
+							Value:    []string{"val", "val2"},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "input with in operator - multiple string values in array",
+			args: args{
+				input: testInputJson9,
+			},
+			want: contract.Filters{
+				Logic: contract.FilterLogicAnd,
+				Conditions: contract.FilterConditions{
+					Conditions: []contract.FilterCondition{
+						{
+							Field:    "key",
+							Operator: contract.FilterOperatorIn,
+							Value:    []any{"val", "val2"},
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "invalid input - wrong structure",
 			args: args{
 				input: invalidInputJson0,
@@ -297,6 +376,36 @@ func TestJsonInput_GetDataJson(t *testing.T) {
 			wantErr:   false,
 		},
 		{
+			name:      "input with complex nested data",
+			jsonInput: *testInputJson5,
+			want:      []byte(`{"logic": "and", "conditions": [{"field": "release_year", "operator": "gte", "value": 2022}, {"logic": "or", "conditions": [{"field": "duration", "operator": "gte", "value": 120}, {"field": "track_name", "operator": "not-contains", "value": "cloud"}, {"field": "release_year", "operator": "neq", "value": 2022}]}]}`),
+			wantErr:   false,
+		},
+		{
+			name:      "input with in operator - single value",
+			jsonInput: *testInputJson6,
+			want:      []byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "in", "value": "val"}]}`),
+			wantErr:   false,
+		},
+		{
+			name:      "input with in operator - multiple string values",
+			jsonInput: *testInputJson7,
+			want:      []byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "in", "value": "val,val2"}]}`),
+			wantErr:   false,
+		},
+		{
+			name:      "input with in operator - multiple string values with space",
+			jsonInput: *testInputJson8,
+			want:      []byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "in", "value": "val, val2"}]}`),
+			wantErr:   false,
+		},
+		{
+			name:      "input with in operator - multiple string values in array",
+			jsonInput: *testInputJson9,
+			want:      []byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "in", "value": ["val", "val2"]}]}`),
+			wantErr:   false,
+		},
+		{
 			name:      "invalid input - wrong structure",
 			jsonInput: *invalidInputJson0,
 			want:      []byte(`{"field": "key", "operator": "eq", "value": "val"}`),
@@ -370,6 +479,36 @@ func TestJsonInput_GetDataString(t *testing.T) {
 			name:      "input with complex data",
 			jsonInput: *testInputJson4,
 			want:      `{"logic": "or", "conditions": [{"logic": "and", "conditions": [{"field": "key", "operator": "eq", "value": "val"}, {"field": "key2", "operator": "not-empty", "value": null}]}, {"logic": "and", "conditions": [{"field": "key3", "operator": "contains", "value": "val3"}, {"field": "key4", "operator": "gt", "value": 123}]}]}`,
+			wantErr:   false,
+		},
+		{
+			name:      "input with complex nested data",
+			jsonInput: *testInputJson5,
+			want:      `{"logic": "and", "conditions": [{"field": "release_year", "operator": "gte", "value": 2022}, {"logic": "or", "conditions": [{"field": "duration", "operator": "gte", "value": 120}, {"field": "track_name", "operator": "not-contains", "value": "cloud"}, {"field": "release_year", "operator": "neq", "value": 2022}]}]}`,
+			wantErr:   false,
+		},
+		{
+			name:      "input with in operator - single value",
+			jsonInput: *testInputJson6,
+			want:      `{"logic": "and", "conditions": [{"field": "key", "operator": "in", "value": "val"}]}`,
+			wantErr:   false,
+		},
+		{
+			name:      "input with in operator - multiple string values",
+			jsonInput: *testInputJson7,
+			want:      `{"logic": "and", "conditions": [{"field": "key", "operator": "in", "value": "val,val2"}]}`,
+			wantErr:   false,
+		},
+		{
+			name:      "input with in operator - multiple string values with space",
+			jsonInput: *testInputJson8,
+			want:      `{"logic": "and", "conditions": [{"field": "key", "operator": "in", "value": "val, val2"}]}`,
+			wantErr:   false,
+		},
+		{
+			name:      "input with in operator - multiple string values in array",
+			jsonInput: *testInputJson9,
+			want:      `{"logic": "and", "conditions": [{"field": "key", "operator": "in", "value": ["val", "val2"]}]}`,
 			wantErr:   false,
 		},
 		{

@@ -16,6 +16,10 @@ var testInputJson2, _ = contract.NewInputOutputType([]byte(`{"logic": "or", "con
 var testInputJson3, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "gte", "value": 123}]}`), &input.JsonInput{})
 var testInputJson4, _ = contract.NewInputOutputType([]byte(`{"logic": "or", "conditions": [{"logic": "and", "conditions": [{"field": "key", "operator": "eq", "value": "val"}, {"field": "key2", "operator": "not-empty", "value": null}]}, {"logic": "and", "conditions": [{"field": "key3", "operator": "contains", "value": "val3"}, {"field": "key4", "operator": "gt", "value": 123}]}]}`), &input.JsonInput{})
 var testInputJson5, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "release_year", "operator": "gte", "value": 2022}, {"logic": "or", "conditions": [{"field": "duration", "operator": "gte", "value": 120}, {"field": "track_name", "operator": "not-contains", "value": "cloud"}, {"field": "release_year", "operator": "neq", "value": 2022}]}]}`), &input.JsonInput{})
+var testInputJson6, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "in", "value": "val"}]}`), &input.JsonInput{})
+var testInputJson7, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "in", "value": "val,val2"}]}`), &input.JsonInput{})
+var testInputJson8, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "in", "value": "val, val2"}]}`), &input.JsonInput{})
+var testInputJson9, _ = contract.NewInputOutputType([]byte(`{"logic": "and", "conditions": [{"field": "key", "operator": "in", "value": ["val", "val2"]}]}`), &input.JsonInput{})
 var invalidInputJson0, _ = contract.NewInputOutputType([]byte(`{"field": "key", "operator": "eq", "value": "val"}`), &input.JsonInput{})
 var invalidInputJson1, _ = contract.NewInputOutputType([]byte(`"JSON string"`), &input.JsonInput{})
 var invalidInputJson2, _ = contract.NewInputOutputType([]byte(`not JSON at all`), &input.JsonInput{})
@@ -35,6 +39,10 @@ var testOutputElastic2, _ = contract.NewInputOutputType(map[string]any{"bool": m
 var testOutputElastic3, _ = contract.NewInputOutputType(map[string]any{"bool": map[string]any{"must": []map[string]any{{"range": map[string]any{"key": map[string]any{"gte": 123.0}}}}}}, &output.ElasticOutput{})
 var testOutputElastic4, _ = contract.NewInputOutputType(map[string]any{"bool": map[string]any{"should": []map[string]any{{"bool": map[string]any{"must": []map[string]any{{"term": map[string]any{"key.lowersortable": "val"}}, {"exists": map[string]any{"field": "key2"}}}}}, {"bool": map[string]any{"must": []map[string]any{{"wildcard": map[string]any{"key3.lowersortable": "*val3*"}}, {"range": map[string]any{"key4": map[string]any{"gt": 123.0}}}}}}}}}, &output.ElasticOutput{})
 var testOutputElastic5, _ = contract.NewInputOutputType(map[string]any{"bool": map[string]any{"must": []map[string]any{{"bool": map[string]any{"should": []map[string]any{{"range": map[string]any{"duration": map[string]any{"gte": 120.0}}}, {"bool": map[string]any{"must_not": []map[string]any{{"wildcard": map[string]any{"track_name.lowersortable": "*cloud*"}}, {"term": map[string]any{"release_year": 2022.0}}}}}}}}, {"range": map[string]any{"release_year": map[string]any{"gte": 2022.0}}}}}}, &output.ElasticOutput{})
+var testOutputElastic6, _ = contract.NewInputOutputType(map[string]any{"bool": map[string]any{"must": []map[string]any{{"terms": map[string]any{"key.lowersortable": []string{"val"}}}}}}, &output.ElasticOutput{})
+var testOutputElastic7, _ = contract.NewInputOutputType(map[string]any{"bool": map[string]any{"must": []map[string]any{{"terms": map[string]any{"key.lowersortable": []string{"val", "val2"}}}}}}, &output.ElasticOutput{})
+var testOutputElastic8, _ = contract.NewInputOutputType(map[string]any{"bool": map[string]any{"must": []map[string]any{{"terms": map[string]any{"key.lowersortable": []string{"val", "val2"}}}}}}, &output.ElasticOutput{})
+var testOutputElastic9, _ = contract.NewInputOutputType(map[string]any{"bool": map[string]any{"must": []map[string]any{{"terms": map[string]any{"key.lowersortable": []any{"val", "val2"}}}}}}, &output.ElasticOutput{})
 
 var testOutputSQL0, _ = contract.NewInputOutputType(output.SQLTuple{Query: "key = $1", Params: []any{"val"}}, &output.SQLOutput{})
 var testOutputSQL1, _ = contract.NewInputOutputType(output.SQLTuple{Query: "(key = $1 OR key2 != $2)", Params: []any{"val", "val2"}}, &output.SQLOutput{})
@@ -109,6 +117,30 @@ func TestFilterTransformer_TransformJsonToElastic(t1 *testing.T) {
 			input:   *testInputJson5,
 			want:    testOutputElastic5,
 			wantErr: false,
+		},
+		{
+			name:  "with in operator",
+			t:     *ft,
+			input: *testInputJson6,
+			want:  testOutputElastic6,
+		},
+		{
+			name:  "with in operator - multiple values",
+			t:     *ft,
+			input: *testInputJson7,
+			want:  testOutputElastic7,
+		},
+		{
+			name:  "with in operator - multiple values with space",
+			t:     *ft,
+			input: *testInputJson8,
+			want:  testOutputElastic8,
+		},
+		{
+			name:  "with in operator - array",
+			t:     *ft,
+			input: *testInputJson9,
+			want:  testOutputElastic9,
 		},
 		{
 			name:    "invalid input - wrong structure",
