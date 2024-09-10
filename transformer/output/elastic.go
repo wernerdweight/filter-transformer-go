@@ -217,6 +217,13 @@ var conditionResolversElastic = map[contract.FilterOperator]func(contract.Filter
 			},
 		}
 	},
+	contract.FilterOperatorMatchPhrase: func(condition contract.FilterCondition) map[string]any {
+		return map[string]any{
+			"match_phrase": map[string]any{
+				fmt.Sprintf("%s", condition.Field): fmt.Sprintf("%s", condition.Value),
+			},
+		}
+	},
 }
 
 func transformConditionElastic(condition contract.FilterCondition, positiveConditions *[]map[string]any, negativeConditions *[]map[string]any) {

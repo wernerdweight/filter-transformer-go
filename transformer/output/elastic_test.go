@@ -1166,6 +1166,26 @@ func Test_transformConditionElastic(t *testing.T) {
 			},
 		},
 		{
+			name: "match-phrase",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorMatchPhrase,
+					Value:    "val",
+				},
+				positiveConditions: &[]map[string]any{},
+				negativeConditions: &[]map[string]any{},
+			},
+			wantPositive: &[]map[string]any{
+				{
+					"match_phrase": map[string]any{
+						"key": "val",
+					},
+				},
+			},
+			wantNegative: &[]map[string]any{},
+		},
+		{
 			name: "empty condition",
 			args: args{
 				condition:          contract.FilterCondition{},

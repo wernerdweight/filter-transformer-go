@@ -34,6 +34,7 @@ const (
 	FilterOperatorIsNotEmpty              FilterOperator = "not-empty"
 	FilterOperatorIn                      FilterOperator = "in"
 	FilterOperatorNotIn                   FilterOperator = "not-in"
+	FilterOperatorMatchPhrase             FilterOperator = "match-phrase"
 
 	ValidationErrorEmpty           = "empty value"
 	ValidationErrorInvalidOperator = "invalid operator"
@@ -58,6 +59,7 @@ var supportedOperators = []FilterOperator{
 	FilterOperatorIsNotEmpty,
 	FilterOperatorIn,
 	FilterOperatorNotIn,
+	FilterOperatorMatchPhrase,
 }
 
 type ValidationError struct {

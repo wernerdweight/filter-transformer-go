@@ -821,6 +821,24 @@ func Test_transformConditionSQL(t *testing.T) {
 			},
 		},
 		{
+			name: "match-phrase",
+			args: args{
+				condition: contract.FilterCondition{
+					Field:    "key",
+					Operator: contract.FilterOperatorMatchPhrase,
+					Value:    "val",
+				},
+				outputConditions: &[]string{},
+				params:           &[]any{},
+			},
+			wantConditions: &[]string{
+				"key LIKE $1",
+			},
+			wantParams: &[]any{
+				"%val%",
+			},
+		},
+		{
 			name: "empty condition",
 			args: args{
 				condition:        contract.FilterCondition{},

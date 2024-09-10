@@ -71,6 +71,7 @@ The following operators are supported:
 * **empty** - is empty (equivalent of `IS NULL OR = ''` in SQL),
 * **not**-empty - is not empty (equivalent of `IS NOT NULL AND != ''` in SQL),
 * **in** - is contained in (equivalent of `IN` in SQL).
+* **match-phrase** - for SQL, this is equivalent to **contains**, but for Elasticsearch, it's equivalent to the `match_phrase` query.
 
 **Currently, only JSON input is supported.** FormData input will be supported in the future, with the same structure. The input could then look like this:
 

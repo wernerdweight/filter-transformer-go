@@ -128,6 +128,10 @@ var conditionResolversSQL = map[contract.FilterOperator]func(contract.FilterCond
 		}
 		return fmt.Sprintf("%s NOT IN (%s)", condition.Field, strings.Join(indices, ", "))
 	},
+	contract.FilterOperatorMatchPhrase: func(condition contract.FilterCondition, params *[]any) string {
+		index := addToParams(params, fmt.Sprintf("%%%s%%", condition.Value))
+		return fmt.Sprintf("%s LIKE $%d", condition.Field, index)
+	},
 }
 
 func transformConditionSQL(condition contract.FilterCondition, outputConditions *[]string, params *[]any) {
