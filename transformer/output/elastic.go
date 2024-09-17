@@ -38,7 +38,8 @@ func getElasticFieldVariantByValueType(condition contract.FilterCondition) strin
 	}
 	_, isInt := value.(int)
 	_, isFloat := value.(float64)
-	if isInt || isFloat {
+	_, isBool := value.(bool)
+	if isInt || isFloat || isBool {
 		field = condition.Field
 	}
 	return field

@@ -138,6 +138,11 @@ var testOutputElastic5, _ = contract.NewInputOutputType(map[string]any{
 					"release_year": map[string]any{"gte": 2022.0},
 				},
 			},
+			{
+				"term": map[string]any{
+					"active": true,
+				},
+			},
 		},
 	},
 }, &ElasticOutput{})
@@ -318,6 +323,11 @@ func TestElasticOutputTransformer_Transform(t1 *testing.T) {
 								Field:    "release_year",
 								Operator: contract.FilterOperatorGreaterThanOrEqual,
 								Value:    2022.0,
+							},
+							{
+								Field:    "active",
+								Operator: contract.FilterOperatorEqual,
+								Value:    true,
 							},
 						},
 						Filters: []contract.Filters{
