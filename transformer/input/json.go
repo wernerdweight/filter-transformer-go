@@ -2,6 +2,7 @@ package input
 
 import (
 	"encoding/json"
+
 	"github.com/wernerdweight/filter-transformer-go/transformer/contract"
 )
 
@@ -37,9 +38,6 @@ func (t *JsonInputTransformer) Transform(input *JsonInput) (contract.Filters, *c
 	if err != nil {
 		return filters, contract.NewError(contract.InvalidInputDataStructure, err.Error())
 	}
-	if len(rawData) > 0 && filters.IsEmpty() {
-		// not empty, but not a valid filter conditions
-		return filters, contract.NewError(contract.InvalidFiltersStructure, rawData)
-	}
+
 	return filters, nil
 }

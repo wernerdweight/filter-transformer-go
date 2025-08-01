@@ -203,8 +203,8 @@ func (f *Filters) IsEmpty() bool {
 	return f.Logic == "" && f.Conditions.IsEmpty()
 }
 
-func (f *Filters) validate(validationErrors *[]ValidationError, path string, validationFunc *ValidationFunc) {
-	if f.IsEmpty() {
+func (f *Filters) validate(validationErrors *[]ValidationError, path string, validationFunc *ValidationFunc, faIlOnEmpty bool) {
+	if f.IsEmpty() && faIlOnEmpty {
 		*validationErrors = append(*validationErrors, ValidationError{
 			Path:  path,
 			Error: ValidationErrorEmpty,
@@ -219,7 +219,7 @@ func (f *Filters) validate(validationErrors *[]ValidationError, path string, val
 			Payload: string(f.Logic),
 		})
 	}
-	if f.Conditions.IsEmpty() {
+	if f.Conditions.IsEmpty() && faIlOnEmpty {
 		*validationErrors = append(*validationErrors, ValidationError{
 			Path:  fmt.Sprintf("%s.conditions", path),
 			Error: ValidationErrorEmpty,
@@ -230,13 +230,13 @@ func (f *Filters) validate(validationErrors *[]ValidationError, path string, val
 		condition.validate(validationErrors, fmt.Sprintf("%s.conditions.%d", path, index), validationFunc)
 	}
 	for index, filter := range f.Conditions.Filters {
-		filter.validate(validationErrors, fmt.Sprintf("%s.conditions.%d", path, index), validationFunc)
+		filter.validate(validationErrors, fmt.Sprintf("%s.conditions.%d", path, index), validationFunc, faIlOnEmpty)
 	}
 }
 
-func (f *Filters) Validate(validationFunc *ValidationFunc) []ValidationError {
+func (f *Filters) Validate(validationFunc *ValidationFunc, faIlOnEmpty bool) []ValidationError {
 	var validationErrors []ValidationError
-	f.validate(&validationErrors, "root", validationFunc)
+	f.validate(&validationErrors, "root", validationFunc, faIlOnEmpty)
 	return validationErrors
 }
 

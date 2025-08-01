@@ -55,7 +55,7 @@ func TestBasic(t *testing.T) {
 	ot := output.ElasticOutputTransformer{}
 	ft := NewFilterTransformer[[]byte, map[string]any, *input.JsonInput, *output.ElasticOutput](&it, &ot, nil)
 	jsonInput, _ := contract.NewInputOutputType[[]byte, *input.JsonInput]([]byte("test"), &input.JsonInput{})
-	transformedOutput, err := ft.Transform(jsonInput)
+	transformedOutput, err := ft.Transform(jsonInput, true)
 	log.Printf("output: %+v, err: %+v", transformedOutput, err)
 }
 
@@ -166,7 +166,7 @@ func TestFilterTransformer_TransformJsonToElastic(t1 *testing.T) {
 	}
 	for _, tt := range tests {
 		t1.Run(tt.name, func(t1 *testing.T) {
-			got, err := tt.t.Transform(&tt.input)
+			got, err := tt.t.Transform(&tt.input, true)
 			if (err != nil) != tt.wantErr {
 				t1.Errorf("Transform() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -254,7 +254,7 @@ func TestFilterTransformer_TransformJsonToSQL(t1 *testing.T) {
 	}
 	for _, tt := range tests {
 		t1.Run(tt.name, func(t1 *testing.T) {
-			got, err := tt.t.Transform(&tt.input)
+			got, err := tt.t.Transform(&tt.input, true)
 			if (err != nil) != tt.wantErr {
 				t1.Errorf("Transform() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -333,7 +333,7 @@ func TestFilterTransformer_Validate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, got := ft.Transform(&tt.input)
+			_, got := ft.Transform(&tt.input, true)
 			if (got == nil && tt.want != nil) || (got != nil && tt.want == nil) {
 				t.Errorf("Transform().Error got = %v, want %v", got, tt.want)
 				return
@@ -479,7 +479,7 @@ func TestFilterTransformer_CustomValidation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, got := ft.Transform(&tt.input)
+			_, got := ft.Transform(&tt.input, true)
 			if (got == nil && tt.want != nil) || (got != nil && tt.want == nil) {
 				t.Errorf("Transform().Error got = %v, want %v", got, tt.want)
 				return
