@@ -3,6 +3,7 @@ package output
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/wernerdweight/filter-transformer-go/transformer/contract"
 )
 
@@ -276,7 +277,9 @@ func transformFiltersElastic(filters contract.Filters, target *map[string]any) {
 	if negativeConditions != nil {
 		if logic == "should" {
 			negativeShouldConditions := map[string]any{"bool": map[string]any{"must_not": negativeConditions}}
-			outputFilters[logic] = append(outputFilters[logic].([]map[string]any), negativeShouldConditions)
+			existing, _ := outputFilters[logic].([]map[string]any)
+			existing = append(existing, negativeShouldConditions)
+			outputFilters[logic] = existing
 		} else {
 			outputFilters["must_not"] = negativeConditions
 		}
