@@ -3,6 +3,7 @@ package output
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/wernerdweight/filter-transformer-go/transformer/contract"
 )
 
@@ -221,7 +222,7 @@ var conditionResolversElastic = map[contract.FilterOperator]func(contract.Filter
 	contract.FilterOperatorMatchPhrase: func(condition contract.FilterCondition) map[string]any {
 		return map[string]any{
 			"match_phrase": map[string]any{
-				fmt.Sprintf("%s", condition.Field): fmt.Sprintf("%s", condition.Value),
+				condition.Field: fmt.Sprint(condition.Value),
 			},
 		}
 	},
@@ -275,8 +276,15 @@ func transformFiltersElastic(filters contract.Filters, target *map[string]any) {
 	}
 	if negativeConditions != nil {
 		if logic == "should" {
-			negativeShouldConditions := map[string]any{"bool": map[string]any{"must_not": negativeConditions}}
-			outputFilters[logic] = append(outputFilters[logic].([]map[string]any), negativeShouldConditions)
+			negativeShouldCondition := map[string]any{
+				"bool": map[string]any{
+					"must": negativeConditions,
+				},
+			}
+			existing, _ := outputFilters["must_not"].([]map[string]any)
+			existing = append(existing, negativeShouldCondition)
+			outputFilters["must_not"] = existing
+
 		} else {
 			outputFilters["must_not"] = negativeConditions
 		}
