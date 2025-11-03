@@ -12,12 +12,12 @@ type FilterTransformer[IDT any, ODT any, IT contract.InputOutputInterface[IDT], 
 	validationFunc    *contract.ValidationFunc
 }
 
-func (t *FilterTransformer[IDT, ODT, IT, OT]) Transform(input IT) (o OT, err *contract.Error) {
+func (t *FilterTransformer[IDT, ODT, IT, OT]) Transform(input IT, failOnEmpty bool) (o OT, err *contract.Error) {
 	filter, err := t.inputTransformer.Transform(input)
 	if err != nil {
 		return
 	}
-	validationErrors := filter.Validate(t.validationFunc)
+	validationErrors := filter.Validate(t.validationFunc, failOnEmpty)
 	if len(validationErrors) > 0 {
 		err = contract.NewError(contract.InvalidFiltersStructure, validationErrors)
 		return
