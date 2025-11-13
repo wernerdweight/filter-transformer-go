@@ -40,6 +40,7 @@ var testOutputElastic1, _ = contract.NewInputOutputType(map[string]any{
 							},
 						},
 					},
+					"minimum_should_match": 1,
 				},
 			},
 		},
@@ -54,6 +55,7 @@ var testOutputElastic2, _ = contract.NewInputOutputType(map[string]any{
 				},
 			},
 		},
+		"minimum_should_match": 1,
 	},
 }, &ElasticOutput{})
 var testOutputElastic3, _ = contract.NewInputOutputType(map[string]any{
@@ -107,6 +109,7 @@ var testOutputElastic4, _ = contract.NewInputOutputType(map[string]any{
 				},
 			},
 		},
+		"minimum_should_match": 1,
 	},
 }, &ElasticOutput{})
 var testOutputElastic5, _ = contract.NewInputOutputType(map[string]any{
@@ -131,6 +134,7 @@ var testOutputElastic5, _ = contract.NewInputOutputType(map[string]any{
 							},
 						},
 					},
+					"minimum_should_match": 1,
 				},
 			},
 			{
@@ -417,13 +421,13 @@ func TestElasticOutput_GetDataJson(t *testing.T) {
 		{
 			name:          "with nested data",
 			elasticOutput: *testOutputElastic1,
-			want:          []byte(`{"bool":{"must":[{"bool":{"should":[{"term":{"key.lowersortable":"val"}},{"bool":{"must_not":[{"term":{"key2.lowersortable":"val2"}}]}}]}}]}}`),
+			want:          []byte(`{"bool":{"must":[{"bool":{"minimum_should_match":1,"should":[{"term":{"key.lowersortable":"val"}},{"bool":{"must_not":[{"term":{"key2.lowersortable":"val2"}}]}}]}}]}}`),
 			wantErr:       false,
 		},
 		{
 			name:          "with null value",
 			elasticOutput: *testOutputElastic2,
-			want:          []byte(`{"bool":{"should":[{"exists":{"field":"key"}}]}}`),
+			want:          []byte(`{"bool":{"minimum_should_match":1,"should":[{"exists":{"field":"key"}}]}}`),
 			wantErr:       false,
 		},
 		{
@@ -435,7 +439,7 @@ func TestElasticOutput_GetDataJson(t *testing.T) {
 		{
 			name:          "with complex data",
 			elasticOutput: *testOutputElastic4,
-			want:          []byte(`{"bool":{"should":[{"bool":{"must":[{"term":{"key.lowersortable":"val"}},{"exists":{"field":"key2"}}]}},{"bool":{"must":[{"wildcard":{"key3.lowersortable":"*val3*"}},{"range":{"key4":{"gt":123}}}]}}]}}`),
+			want:          []byte(`{"bool":{"minimum_should_match":1,"should":[{"bool":{"must":[{"term":{"key.lowersortable":"val"}},{"exists":{"field":"key2"}}]}},{"bool":{"must":[{"wildcard":{"key3.lowersortable":"*val3*"}},{"range":{"key4":{"gt":123}}}]}}]}}`),
 			wantErr:       false,
 		},
 	}
@@ -447,7 +451,7 @@ func TestElasticOutput_GetDataJson(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetDataJson() got = %v, want %v", got, tt.want)
+				t.Errorf("GetDataJson() got = %v, want %v", string(got), string(tt.want))
 			}
 		})
 	}
@@ -475,13 +479,13 @@ func TestElasticOutput_GetDataString(t *testing.T) {
 		{
 			name:          "with nested data",
 			elasticOutput: *testOutputElastic1,
-			want:          `{"bool":{"must":[{"bool":{"should":[{"term":{"key.lowersortable":"val"}},{"bool":{"must_not":[{"term":{"key2.lowersortable":"val2"}}]}}]}}]}}`,
+			want:          `{"bool":{"must":[{"bool":{"minimum_should_match":1,"should":[{"term":{"key.lowersortable":"val"}},{"bool":{"must_not":[{"term":{"key2.lowersortable":"val2"}}]}}]}}]}}`,
 			wantErr:       false,
 		},
 		{
 			name:          "with null value",
 			elasticOutput: *testOutputElastic2,
-			want:          `{"bool":{"should":[{"exists":{"field":"key"}}]}}`,
+			want:          `{"bool":{"minimum_should_match":1,"should":[{"exists":{"field":"key"}}]}}`,
 			wantErr:       false,
 		},
 		{
@@ -493,7 +497,7 @@ func TestElasticOutput_GetDataString(t *testing.T) {
 		{
 			name:          "with complex data",
 			elasticOutput: *testOutputElastic4,
-			want:          `{"bool":{"should":[{"bool":{"must":[{"term":{"key.lowersortable":"val"}},{"exists":{"field":"key2"}}]}},{"bool":{"must":[{"wildcard":{"key3.lowersortable":"*val3*"}},{"range":{"key4":{"gt":123}}}]}}]}}`,
+			want:          `{"bool":{"minimum_should_match":1,"should":[{"bool":{"must":[{"term":{"key.lowersortable":"val"}},{"exists":{"field":"key2"}}]}},{"bool":{"must":[{"wildcard":{"key3.lowersortable":"*val3*"}},{"range":{"key4":{"gt":123}}}]}}]}}`,
 			wantErr:       false,
 		},
 	}
