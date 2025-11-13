@@ -265,17 +265,15 @@ func transformFiltersElastic(filters contract.Filters, target *map[string]any) {
 	if filters.IsEmpty() {
 		return
 	}
+	var outputFilters = make(map[string]any)
 	logic := "must"
 	if filters.Logic == contract.FilterLogicOr {
 		logic = "should"
+		outputFilters["minimum_should_match"] = 1
 	}
 	positiveConditions, negativeConditions := transformConditionsElastic(filters.Conditions)
-	var outputFilters = make(map[string]any)
 	if positiveConditions != nil {
 		outputFilters[logic] = positiveConditions
-		if logic == "should" {
-			outputFilters["minimum_should_match"] = 1
-		}
 	}
 	if negativeConditions != nil {
 		if logic == "should" {
