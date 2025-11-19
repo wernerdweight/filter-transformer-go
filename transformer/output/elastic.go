@@ -282,8 +282,10 @@ func transformFiltersElastic(filters contract.Filters, target *map[string]any) {
 					"must_not": negativeConditions,
 				},
 			}
+			if _, ok := outputFilters[logic]; !ok {
+				outputFilters[logic] = []map[string]any{}
+			}
 			outputFilters[logic] = append(outputFilters[logic].([]map[string]any), negativeShouldConditions)
-
 		} else {
 			outputFilters["must_not"] = negativeConditions
 		}
